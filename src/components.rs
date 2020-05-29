@@ -1,13 +1,17 @@
 use specs::prelude::*;
-use nphysics2d::world::{DefaultMechanicalWorld, DefaultGeometricalWorld};
+use specs::Component;
+
+use na::{Isometry2, Point2, Vector2};
 use nalgebra as na;
-use na::{Vector2, Point2, Isometry2};
-use nphysics2d::object::{BodyStatus, RigidBodyDesc, ColliderDesc};
-use nphysics2d::math::{Velocity, Inertia};
 use ncollide2d::shape;
+use nphysics2d::math::{Inertia, Velocity};
+use nphysics2d::object::{BodyStatus, ColliderDesc, RigidBodyDesc};
+use nphysics2d::world::{DefaultGeometricalWorld, DefaultMechanicalWorld};
 
 type RigidBody = nphysics2d::object::RigidBody<f32>;
 
+#[derive(Component)]
+#[storage(VecStorage)]
 pub struct PhysicsObject {
     rigidbody: RigidBody,
 }
