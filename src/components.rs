@@ -5,13 +5,21 @@ use na::{Isometry2, Point2, Vector2};
 use nalgebra as na;
 use ncollide2d::shape;
 use nphysics2d::math::{Inertia, Velocity};
-use nphysics2d::object::{BodyStatus, ColliderDesc, RigidBodyDesc};
+use nphysics2d::object::{
+    BodyStatus, ColliderDesc, DefaultBodyHandle, DefaultColliderSet, RigidBodyDesc,
+};
 use nphysics2d::world::{DefaultGeometricalWorld, DefaultMechanicalWorld};
 
-type RigidBody = nphysics2d::object::RigidBody<f32>;
+use crate::{ColliderHandle, ColliderSet};
 
-#[derive(Component)]
+#[derive(Debug, Copy, Clone, Component)]
 #[storage(VecStorage)]
-pub struct PhysicsObject {
-    rigidbody: RigidBody,
+pub struct PhysicsBody {
+    pub body_handle: DefaultBodyHandle,
+}
+
+#[derive(Debug, Copy, Clone, Component)]
+#[storage(VecStorage)]
+pub struct Collider {
+    pub coll_handle: ColliderHandle,
 }

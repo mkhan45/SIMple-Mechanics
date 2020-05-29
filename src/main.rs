@@ -2,49 +2,60 @@ use ggez::event::EventHandler;
 
 use specs::prelude::*;
 
-use nphysics2d::object::{DefaultBodySet, DefaultColliderSet};
-
-use nphysics2d as np;
-use ncollide2d as nc;
 use nalgebra as na;
+use ncollide2d as nc;
+use nphysics2d as np;
 
 type Vector = nalgebra::Vector2<f32>;
 type Point = nalgebra::Point2<f32>;
 
-type MechanicalWorld = nphysics2d::world::DefaultMechanicalWorld<f32>;
-type BodySet = nphysics2d::object::DefaultBodySet<f32>;
-type GeometricalWorld = nphysics2d::world::DefaultGeometricalWorld<f32>;
-type ColliderSet = nphysics2d::object::DefaultColliderSet<f32>;
+type MechanicalWorld = np::world::DefaultMechanicalWorld<f32>;
+type BodySet = np::object::DefaultBodySet<f32>;
+type GeometricalWorld = np::world::DefaultGeometricalWorld<f32>;
+type ColliderSet = np::object::DefaultColliderSet<f32>;
 
-type ShapeHandle = ncollide2d::shape::ShapeHandle<f32>;
-type RigidBody = nphysics2d::object::RigidBody<f32>;
-type RigidBodyDesc = nphysics2d::object::RigidBodyDesc<f32>;
+type ShapeHandle = nc::shape::ShapeHandle<f32>;
+type ColliderHandle = np::object::DefaultColliderHandle;
+type RigidBody = np::object::RigidBody<f32>;
+type RigidBodyDesc = np::object::RigidBodyDesc<f32>;
 
 mod components;
+use components::*;
 
 struct MainState {
     world: specs::World,
 }
 
 impl MainState {
-    fn add_body(
-        &mut self,
-        shape: ShapeHandle,
-        body: np::object::RigidBodyDesc<f32>,
-    ) {
-        let mut handle = self
+    fn add_body(&mut self, shape: ShapeHandle, body: RigidBody) {
+        let body_handle = self
             .world
-            .get_mut::<DefaultBodySet<f32>>()
+            .get_mut::<BodySet>()
             .expect("error getting DefaultBodySet")
-            .insert();
+            .insert(body);
 
-        let coll = nphysics2d::object::ColliderDesc::new(shape)
-            .build(nphysics2d::object::BodyPartHandle(handle, 0));
+        let coll = np::object::ColliderDesc::new(shape)
+            .build(np::object::BodyPartHandle(body_handle, 0));
 
-        let specs_hand = self.world
-            .get_mut::<DefaultColliderSet<f32>>()
+        let coll_handle = self
+            .world
+            .get_mut::<ColliderSet>()
             .expect("error getting DefaultColliderSet")
             .insert(coll);
+
+        let specs_handle = self
+            .world
+            .create_entity()
+            .with(PhysicsBody { body_handle })
+            .with(Collider { coll_handle })
+            .build();
+
+        self.world
+            .get_mut::<BodySet>()
+            .expect("Error getting body set")
+            .rigid_body_mut(body_handle)
+            .unwrap()
+            .set_user_data(Some(Box::new(specs_handle)));
     }
 }
 
@@ -64,10 +75,10 @@ fn main() -> ggez::GameResult {
 
     let mut world = specs::World::new();
 
-    let mut mechanical_world = MechanicalWorld::new(Vector::new(0.0, -9.81));
-    let mut geometrical_world: GeometricalWorld = GeometricalWorld::new();
-    let mut bodies: BodySet = DefaultBodySet::new();
-    let mut colliders: ColliderSet = DefaultColliderSet::new();
+    let mechanical_world = MechanicalWorld::new(Vector::new(0.0, -9.81));
+    let geometrical_world: GeometricalWorld = GeometricalWorld::new();
+    let bodies: BodySet = BodySet::new();
+    let colliders: ColliderSet = ColliderSet::new();
 
     world.insert(mechanical_world);
     world.insert(geometrical_world);
@@ -77,7 +88,7 @@ fn main() -> ggez::GameResult {
     // Make a mutable reference to `MainState`
     let main_state = &mut MainState { world };
 
-    main_state.add_body(ShapeHandle::new(ncollide2d::shape::Ball(5.0)), np::object::RigidBodyDesc::new())
+    main_state.add_body(ShapeHandle::new(nc::shape::Ball::new(5.0)), RigidBodyDesc::new().build());
 
     // Start the game
     ggez::event::run(ctx, event_loop, main_state)
