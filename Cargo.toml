@@ -10,8 +10,11 @@ edition = "2018"
 nalgebra = "0.21"
 ncollide2d = "0.23"
 nphysics2d = "0.15.1"
+
 ggez = "0.5.1"
 specs = { version = "0.15.1", features = ["specs-derive"] }
+
+smallvec = "1.4.0"
 
 [profile.dev.package."*"]
 opt-level = 3

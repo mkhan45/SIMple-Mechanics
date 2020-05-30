@@ -6,6 +6,8 @@ use nalgebra as na;
 use ncollide2d as nc;
 use nphysics2d as np;
 
+use smallvec::SmallVec;
+
 type Vector = nalgebra::Vector2<f32>;
 type Point = nalgebra::Point2<f32>;
 
@@ -35,10 +37,11 @@ impl MainState {
     fn add_body(&mut self, shape: ShapeHandle, body: RigidBody, restitution: f32, friction: f32) {
         let body_handle = self.world.fetch_mut::<BodySet>().insert(body);
 
-        let coll =
-            np::object::ColliderDesc::new(shape)
+        let coll = np::object::ColliderDesc::new(shape)
             .density(1.0)
-            .set_material(np::material::MaterialHandle::new(np::material::BasicMaterial::new(restitution, friction)))
+            .set_material(np::material::MaterialHandle::new(
+                np::material::BasicMaterial::new(restitution, friction),
+            ))
             .build(np::object::BodyPartHandle(body_handle, 0));
 
         let coll_handle = self.world.fetch_mut::<ColliderSet>().insert(coll);
@@ -113,7 +116,10 @@ impl EventHandler for MainState {
 
                 mesh_builder.circle(
                     graphics::DrawMode::fill(),
-                    [pos[0] + shape.radius() * rot.cos() * 0.75, pos[1] + shape.radius() * rot.sin() * 0.75],
+                    [
+                        pos[0] + shape.radius() * rot.cos() * 0.75,
+                        pos[1] + shape.radius() * rot.sin() * 0.75,
+                    ],
                     shape.radius() * 0.15,
                     0.01,
                     graphics::Color::new(0.0, 0.0, 0.0, 1.0),
@@ -124,16 +130,51 @@ impl EventHandler for MainState {
                     .downcast_ref::<nc::shape::Cuboid<f32>>()
                     .expect("bad shape");
 
-                mesh_builder.rectangle(
-                    graphics::DrawMode::fill(),
-                    graphics::Rect::new(
-                        pos[0] - shape.half_extents().x,
-                        pos[1] - shape.half_extents().y,
-                        shape.half_extents().x * 2.0,
-                        shape.half_extents().y * 2.0,
-                    ),
-                    graphics::Color::new(1.0, 1.0, 1.0, 1.0),
-                );
+                if rot == 0.0 {
+                    mesh_builder.rectangle(
+                        graphics::DrawMode::fill(),
+                        graphics::Rect::new(
+                            pos[0] - shape.half_extents().x,
+                            pos[1] - shape.half_extents().y,
+                            shape.half_extents().x * 2.0,
+                            shape.half_extents().y * 2.0,
+                        ),
+                        graphics::Color::new(1.0, 1.0, 1.0, 1.0),
+                    );
+                } else {
+                    let rot_cos = rot.cos();
+                    let rot_sin = rot.sin();
+
+                    let _points = [
+                        Point::new(
+                            pos[0] - shape.half_extents().x,
+                            pos[1] - shape.half_extents().y,
+                        ),
+                        Point::new(
+                            pos[0] + shape.half_extents().x,
+                            pos[1] - shape.half_extents().y,
+                        ),
+                        Point::new(
+                            pos[0] + shape.half_extents().x,
+                            pos[1] + shape.half_extents().y,
+                        ),
+                        Point::new(
+                            pos[0] - shape.half_extents().x,
+                            pos[1] + shape.half_extents().y,
+                        ),
+                    ]
+                    .iter()
+                    .map(|point| {
+                        [rot_cos * (point.x - pos[0]) - rot_sin * (point.y - pos[1]) + pos[0],
+                        rot_sin * (point.x - pos[0]) + rot_cos * (point.y - pos[1]) + pos[1]
+                        ]
+                    })
+                    .collect::<SmallVec<[[f32; 2]; 4]>>();
+
+                    let points = _points.as_slice();
+
+                    mesh_builder.polygon(graphics::DrawMode::fill(), points, graphics::Color::new(1.0, 1.0, 1.0, 1.0)).expect("error drawing rotated rect");
+                };
             }
         });
 
@@ -155,14 +196,14 @@ impl EventHandler for MainState {
                 ctx,
                 ggez::graphics::Rect::new(0.0, 0.0, new_width, SCREEN_Y),
             )
-            .expect("error resizing");
-        } else {
-            let new_height = SCREEN_Y * aspect_ratio;
-            ggez::graphics::set_screen_coordinates(
-                ctx,
-                ggez::graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
-            )
-            .expect("error resizing");
+                .expect("error resizing");
+            } else {
+                let new_height = SCREEN_Y * aspect_ratio;
+                ggez::graphics::set_screen_coordinates(
+                    ctx,
+                    ggez::graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
+                )
+                    .expect("error resizing");
         }
     }
 }
@@ -195,23 +236,38 @@ fn main() -> ggez::GameResult {
     let main_state = &mut MainState { world };
 
     let circle = RigidBodyDesc::new()
-        .translation(Vector::new(12.25, 1.0))
+        .translation(Vector::new(15.25, 1.0))
         .mass(1.0)
         .enable_gravity(true)
         .build();
-    main_state.add_body(ShapeHandle::new(nc::shape::Ball::new(2.0)), circle, 0.5, 0.5);
+    main_state.add_body(
+        ShapeHandle::new(nc::shape::Ball::new(2.0)),
+        circle,
+        0.5,
+        0.5,
+    );
+
+    let rect = RigidBodyDesc::new()
+        .translation(Vector::new(8.0, 0.0))
+        .rotation(std::f32::consts::PI / 4.0)
+        .build();
+    main_state.add_body(
+        ShapeHandle::new(nc::shape::Cuboid::new(Vector::new(3.0, 0.5))),
+        rect,
+        0.5,
+        0.5,
+    );
 
     let floor = RigidBodyDesc::new()
         .translation(Vector::new(0.0, SCREEN_Y))
         .status(np::object::BodyStatus::Static)
         .enable_gravity(false)
         .build();
-
     main_state.add_body(
         ShapeHandle::new(nc::shape::Cuboid::new(Vector::new(SCREEN_X * 5.0, 0.25))),
         floor,
         0.5,
-        0.5
+        0.5,
     );
 
     // Start the game

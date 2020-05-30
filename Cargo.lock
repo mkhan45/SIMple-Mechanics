@@ -1612,6 +1612,7 @@ dependencies = [
  "nalgebra 0.21.0",
  "ncollide2d",
  "nphysics2d",
+ "smallvec 1.4.0",
  "specs",
 ]
 
