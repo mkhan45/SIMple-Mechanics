@@ -13,14 +13,17 @@ use crate::{SCREEN_X, SCREEN_Y};
 
 use crate::components::*;
 
+use crate::resources;
+
 use ncollide2d as nc;
 use nphysics2d as np;
 
-pub struct MainState {
+pub struct MainState<'a, 'b> {
     pub world: specs::World,
+    pub dispatcher: Dispatcher<'a, 'b>,
 }
 
-impl MainState {
+impl<'a, 'b> MainState<'a, 'b> {
     pub fn add_body(
         &mut self,
         shape: ShapeHandle,
@@ -52,11 +55,22 @@ impl MainState {
             .rigid_body_mut(body_handle)
             .unwrap()
             .set_user_data(Some(Box::new(specs_handle)));
+
+        self.world
+            .get_mut::<ColliderSet>()
+            .expect("Error getting collider set")
+            .get_mut(coll_handle)
+            .unwrap()
+            .set_user_data(Some(Box::new(specs_handle)));
     }
 }
 
-impl EventHandler for MainState {
+impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     fn update(&mut self, _ctx: &mut ggez::Context) -> ggez::GameResult {
+        {
+            self.dispatcher.dispatch(&self.world);
+        }
+
         let geometrical_world = &mut self.world.fetch_mut::<GeometricalWorld>();
         let body_set = &mut *self.world.fetch_mut::<BodySet>();
         let collider_set = &mut *self.world.fetch_mut::<ColliderSet>();
@@ -70,6 +84,7 @@ impl EventHandler for MainState {
             joint_constraint_set,
             force_generator_set,
         );
+
 
         Ok(())
     }
@@ -128,14 +143,48 @@ impl EventHandler for MainState {
                 ctx,
                 ggez::graphics::Rect::new(0.0, 0.0, new_width, SCREEN_Y),
             )
-            .expect("error resizing");
-        } else {
-            let new_height = SCREEN_Y * aspect_ratio;
-            ggez::graphics::set_screen_coordinates(
-                ctx,
-                ggez::graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
-            )
-            .expect("error resizing");
+                .expect("error resizing");
+            } else {
+                let new_height = SCREEN_Y * aspect_ratio;
+                ggez::graphics::set_screen_coordinates(
+                    ctx,
+                    ggez::graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
+                )
+                    .expect("error resizing");
+        }
+    }
+
+    fn mouse_motion_event(&mut self, ctx: &mut ggez::Context, x: f32, y: f32, _dx: f32, _dy: f32) {
+        let screen_size = graphics::drawable_size(ctx);
+        let screen_coords = graphics::screen_coordinates(ctx);
+        let mouse_point = Vector::new(x / screen_size.0 * screen_coords.w, y / screen_size.1 * screen_coords.h);
+
+        self.world.insert(resources::MousePos(mouse_point));
+    }
+
+    fn mouse_button_down_event(&mut self, ctx: &mut ggez::Context, btn: ggez::input::mouse::MouseButton, _x: f32, _y: f32) {
+        if let ggez::input::mouse::MouseButton::Left = btn {
+            let geometrical_world = self.world.fetch::<GeometricalWorld>();
+            let colliders = self.world.fetch::<ColliderSet>();
+
+            let mouse_point = self.world.fetch::<resources::MousePos>().0;
+
+            let mut selected = self.world.write_storage::<Selected>();
+
+            geometrical_world.interferences_with_point(&*colliders, &Point::new(mouse_point.x, mouse_point.y), &nc::pipeline::CollisionGroups::new())
+                .for_each(|obj|{
+                    let specs_hand = obj.1.user_data().unwrap();
+                    let ent = specs_hand.downcast_ref::<Entity>().unwrap();
+
+                    selected.insert(*ent, Selected::default()).unwrap();
+                });
+        }
+    }
+
+    fn mouse_button_up_event(&mut self, _ctx: &mut ggez::Context, btn: ggez::input::mouse::MouseButton, _x: f32, _y: f32) {
+        if let ggez::input::mouse::MouseButton::Left = btn {
+            let mut selected = self.world.write_storage::<Selected>();
+            selected.clear();
         }
     }
 }
@@ -152,8 +201,8 @@ fn draw_circle(mesh_builder: &mut ggez::graphics::MeshBuilder, pos: [f32; 2], ro
     mesh_builder.circle(
         graphics::DrawMode::fill(),
         [
-            pos[0] + rad * rot.cos() * 0.75,
-            pos[1] + rad * rot.sin() * 0.75,
+        pos[0] + rad * rot.cos() * 0.75,
+        pos[1] + rad * rot.sin() * 0.75,
         ],
         rad * 0.15,
         0.01,
@@ -189,18 +238,18 @@ fn draw_rect(
             center_pos[1] + half_extents.y,
         ),
     ]
-    .iter()
-    .map(|point| {
-        // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
-        // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
-        [
-            rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
-                + center_pos[0],
-            rot_sin * (point.x - center_pos[0])
-                + rot_cos * (point.y - center_pos[1])
-                + center_pos[1],
-        ]
-    })
+        .iter()
+        .map(|point| {
+            // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
+            // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
+            [
+                rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
+                    + center_pos[0],
+                    rot_sin * (point.x - center_pos[0])
+                        + rot_cos * (point.y - center_pos[1])
+                        + center_pos[1],
+            ]
+        })
     .collect::<SmallVec<[[f32; 2]; 4]>>();
 
     let points = _points.as_slice();

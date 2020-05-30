@@ -3,6 +3,8 @@ use specs::prelude::*;
 mod main_state;
 use main_state::MainState;
 
+mod resources;
+
 use nalgebra as na;
 use ncollide2d as nc;
 use nphysics2d as np;
@@ -24,6 +26,9 @@ type RigidBodyDesc = np::object::RigidBodyDesc<f32>;
 
 mod components;
 use components::*;
+
+mod systems;
+use systems::SelectedMoveSys;
 
 const SCREEN_X: f32 = 25.0;
 const SCREEN_Y: f32 = 25.0;
@@ -49,11 +54,20 @@ fn main() -> ggez::GameResult {
     world.insert(joint_constraints);
     world.insert(force_gens);
 
+    world.insert(resources::MousePos::default());
+
     world.register::<PhysicsBody>();
     world.register::<Collider>();
+    world.register::<Selected>();
+
+    let mut dispatcher = DispatcherBuilder::new()
+        .with(SelectedMoveSys, "selected_move_sys", &[])
+        .build();
+
+    dispatcher.setup(&mut world);
 
     // Make a mutable reference to `MainState`
-    let main_state = &mut MainState { world };
+    let main_state = &mut MainState { world, dispatcher };
 
     let circle = RigidBodyDesc::new()
         .translation(Vector::new(15.25, 1.0))

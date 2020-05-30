@@ -16,3 +16,7 @@ pub struct PhysicsBody {
 pub struct Collider {
     pub coll_handle: ColliderHandle,
 }
+
+#[derive(Component, Default)]
+#[storage(NullStorage)]
+pub struct Selected;
