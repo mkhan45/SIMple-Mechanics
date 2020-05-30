@@ -92,9 +92,10 @@ impl EventHandler for MainState {
             let collider = collider_set
                 .get(collider_comp.coll_handle)
                 .expect("error getting body to draw");
-            let pos = {
-                let na_vector = collider.position().translation.vector;
-                [na_vector.x, na_vector.y]
+            let (pos, rot) = {
+                let isometry = collider.position();
+                let na_vector = isometry.translation.vector;
+                ([na_vector.x, na_vector.y], isometry.rotation.angle())
             };
 
             if collider.shape().is_shape::<nc::shape::Ball<f32>>() {
@@ -108,6 +109,14 @@ impl EventHandler for MainState {
                     shape.radius(),
                     0.01,
                     graphics::Color::new(1.0, 1.0, 1.0, 1.0),
+                );
+
+                mesh_builder.circle(
+                    graphics::DrawMode::fill(),
+                    [pos[0] + shape.radius() * rot.cos() * 0.75, pos[1] + shape.radius() * rot.sin() * 0.75],
+                    shape.radius() * 0.15,
+                    0.01,
+                    graphics::Color::new(0.0, 0.0, 0.0, 1.0),
                 );
             } else if collider.shape().is_shape::<nc::shape::Cuboid<f32>>() {
                 let shape = collider
