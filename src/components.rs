@@ -1,16 +1,9 @@
 use specs::prelude::*;
 use specs::Component;
 
-use na::{Isometry2, Point2, Vector2};
-use nalgebra as na;
-use ncollide2d::shape;
-use nphysics2d::math::{Inertia, Velocity};
-use nphysics2d::object::{
-    BodyStatus, ColliderDesc, DefaultBodyHandle, DefaultColliderSet, RigidBodyDesc,
-};
-use nphysics2d::world::{DefaultGeometricalWorld, DefaultMechanicalWorld};
+use nphysics2d::object::DefaultBodyHandle;
 
-use crate::{ColliderHandle, ColliderSet};
+use crate::ColliderHandle;
 
 #[derive(Debug, Copy, Clone, Component)]
 #[storage(VecStorage)]
