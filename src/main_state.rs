@@ -1,12 +1,13 @@
 use smallvec::SmallVec;
 
 use ggez::event::EventHandler;
+use ggez::graphics;
 
 use specs::prelude::*;
 
 use crate::{
     BodySet, Collider, ColliderSet, ForceGeneratorSet, GeometricalWorld, JointConstraintSet,
-    MechanicalWorld, Point, RigidBody, ShapeHandle,
+    MechanicalWorld, Point, RigidBody, ShapeHandle, Vector,
 };
 use crate::{SCREEN_X, SCREEN_Y};
 
@@ -74,8 +75,6 @@ impl EventHandler for MainState {
     }
 
     fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        use ggez::graphics;
-
         graphics::clear(ctx, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
 
         let mut mesh_builder = graphics::MeshBuilder::new();
@@ -87,6 +86,7 @@ impl EventHandler for MainState {
             let collider = collider_set
                 .get(collider_comp.coll_handle)
                 .expect("error getting body to draw");
+
             let (pos, rot) = {
                 let isometry = collider.position();
                 let na_vector = isometry.translation.vector;
@@ -98,82 +98,15 @@ impl EventHandler for MainState {
                     .shape()
                     .downcast_ref::<nc::shape::Ball<f32>>()
                     .expect("bad shape");
-                mesh_builder.circle(
-                    graphics::DrawMode::fill(),
-                    pos,
-                    shape.radius(),
-                    0.01,
-                    graphics::Color::new(1.0, 1.0, 1.0, 1.0),
-                );
 
-                mesh_builder.circle(
-                    graphics::DrawMode::fill(),
-                    [
-                        pos[0] + shape.radius() * rot.cos() * 0.75,
-                        pos[1] + shape.radius() * rot.sin() * 0.75,
-                    ],
-                    shape.radius() * 0.15,
-                    0.01,
-                    graphics::Color::new(0.0, 0.0, 0.0, 1.0),
-                );
+                draw_circle(&mut mesh_builder, pos, rot, shape.radius());
             } else if collider.shape().is_shape::<nc::shape::Cuboid<f32>>() {
                 let shape = collider
                     .shape()
                     .downcast_ref::<nc::shape::Cuboid<f32>>()
                     .expect("bad shape");
 
-                if rot == 0.0 {
-                    mesh_builder.rectangle(
-                        graphics::DrawMode::fill(),
-                        graphics::Rect::new(
-                            pos[0] - shape.half_extents().x,
-                            pos[1] - shape.half_extents().y,
-                            shape.half_extents().x * 2.0,
-                            shape.half_extents().y * 2.0,
-                        ),
-                        graphics::Color::new(1.0, 1.0, 1.0, 1.0),
-                    );
-                } else {
-                    let rot_cos = rot.cos();
-                    let rot_sin = rot.sin();
-
-                    let _points = [
-                        Point::new(
-                            pos[0] - shape.half_extents().x,
-                            pos[1] - shape.half_extents().y,
-                        ),
-                        Point::new(
-                            pos[0] + shape.half_extents().x,
-                            pos[1] - shape.half_extents().y,
-                        ),
-                        Point::new(
-                            pos[0] + shape.half_extents().x,
-                            pos[1] + shape.half_extents().y,
-                        ),
-                        Point::new(
-                            pos[0] - shape.half_extents().x,
-                            pos[1] + shape.half_extents().y,
-                        ),
-                    ]
-                    .iter()
-                    .map(|point| {
-                        [
-                            rot_cos * (point.x - pos[0]) - rot_sin * (point.y - pos[1]) + pos[0],
-                            rot_sin * (point.x - pos[0]) + rot_cos * (point.y - pos[1]) + pos[1],
-                        ]
-                    })
-                    .collect::<SmallVec<[[f32; 2]; 4]>>();
-
-                    let points = _points.as_slice();
-
-                    mesh_builder
-                        .polygon(
-                            graphics::DrawMode::fill(),
-                            points,
-                            graphics::Color::new(1.0, 1.0, 1.0, 1.0),
-                        )
-                        .expect("error drawing rotated rect");
-                };
+                draw_rect(&mut mesh_builder, pos, rot, *shape.half_extents());
             }
         });
 
@@ -205,4 +138,78 @@ impl EventHandler for MainState {
             .expect("error resizing");
         }
     }
+}
+
+fn draw_circle(mesh_builder: &mut ggez::graphics::MeshBuilder, pos: [f32; 2], rot: f32, rad: f32) {
+    mesh_builder.circle(
+        graphics::DrawMode::fill(),
+        pos,
+        rad,
+        0.01,
+        graphics::Color::new(1.0, 1.0, 1.0, 1.0),
+    );
+
+    mesh_builder.circle(
+        graphics::DrawMode::fill(),
+        [
+            pos[0] + rad * rot.cos() * 0.75,
+            pos[1] + rad * rot.sin() * 0.75,
+        ],
+        rad * 0.15,
+        0.01,
+        graphics::Color::new(0.0, 0.0, 0.0, 1.0),
+    );
+}
+
+fn draw_rect(
+    mesh_builder: &mut ggez::graphics::MeshBuilder,
+    center_pos: [f32; 2],
+    rot: f32,
+    half_extents: Vector,
+) {
+    let rot_cos = rot.cos();
+    let rot_sin = rot.sin();
+
+    // rect points in clockwise (important for ggez)
+    let _points = [
+        Point::new(
+            center_pos[0] - half_extents.x,
+            center_pos[1] - half_extents.y,
+        ),
+        Point::new(
+            center_pos[0] + half_extents.x,
+            center_pos[1] - half_extents.y,
+        ),
+        Point::new(
+            center_pos[0] + half_extents.x,
+            center_pos[1] + half_extents.y,
+        ),
+        Point::new(
+            center_pos[0] - half_extents.x,
+            center_pos[1] + half_extents.y,
+        ),
+    ]
+    .iter()
+    .map(|point| {
+        // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
+        // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
+        [
+            rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
+                + center_pos[0],
+            rot_sin * (point.x - center_pos[0])
+                + rot_cos * (point.y - center_pos[1])
+                + center_pos[1],
+        ]
+    })
+    .collect::<SmallVec<[[f32; 2]; 4]>>();
+
+    let points = _points.as_slice();
+
+    mesh_builder
+        .polygon(
+            graphics::DrawMode::fill(),
+            points,
+            graphics::Color::new(1.0, 1.0, 1.0, 1.0),
+        )
+        .expect("error drawing rotated rect");
 }
