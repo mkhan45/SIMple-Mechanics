@@ -8,3 +8,6 @@ impl Default for MousePos {
         MousePos(Vector::new(0.0, 0.0))
     }
 }
+
+#[derive(Copy, Clone, Default)]
+pub struct DT(pub std::time::Duration);

@@ -66,8 +66,9 @@ impl<'a, 'b> MainState<'a, 'b> {
 }
 
 impl<'a, 'b> EventHandler for MainState<'a, 'b> {
-    fn update(&mut self, _ctx: &mut ggez::Context) -> ggez::GameResult {
+    fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         {
+            self.world.insert(resources::DT(ggez::timer::delta(ctx)));
             self.dispatcher.dispatch(&self.world);
         }
 

@@ -30,8 +30,8 @@ use components::*;
 mod systems;
 use systems::SelectedMoveSys;
 
-const SCREEN_X: f32 = 25.0;
-const SCREEN_Y: f32 = 25.0;
+const SCREEN_X: f32 = 20.0;
+const SCREEN_Y: f32 = 20.0;
 
 fn main() -> ggez::GameResult {
     // create a mutable reference to a `Context` and `EventsLoop`
@@ -101,6 +101,18 @@ fn main() -> ggez::GameResult {
     main_state.add_body(
         ShapeHandle::new(nc::shape::Cuboid::new(Vector::new(SCREEN_X * 5.0, 0.25))),
         floor,
+        0.5,
+        0.5,
+    );
+
+    let static_block = RigidBodyDesc::new()
+        .translation(Vector::new(SCREEN_X / 3.0, SCREEN_Y / 2.0))
+        .status(np::object::BodyStatus::Static)
+        .enable_gravity(false)
+        .build();
+    main_state.add_body(
+        ShapeHandle::new(nc::shape::Cuboid::new(Vector::new(0.1, 0.1))),
+        static_block,
         0.5,
         0.5,
     );
