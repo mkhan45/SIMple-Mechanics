@@ -24,16 +24,22 @@ type RigidBodyDesc = np::object::RigidBodyDesc<f32>;
 mod components;
 use components::*;
 
+const SCREEN_X: f32 = 25.0;
+const SCREEN_Y: f32 = 25.0;
+
 struct MainState {
     world: specs::World,
 }
 
 impl MainState {
-    fn add_body(&mut self, shape: ShapeHandle, body: RigidBody) {
+    fn add_body(&mut self, shape: ShapeHandle, body: RigidBody, restitution: f32, friction: f32) {
         let body_handle = self.world.fetch_mut::<BodySet>().insert(body);
 
         let coll =
-            np::object::ColliderDesc::new(shape).build(np::object::BodyPartHandle(body_handle, 0));
+            np::object::ColliderDesc::new(shape)
+            .density(1.0)
+            .set_material(np::material::MaterialHandle::new(np::material::BasicMaterial::new(restitution, friction)))
+            .build(np::object::BodyPartHandle(body_handle, 0));
 
         let coll_handle = self.world.fetch_mut::<ColliderSet>().insert(coll);
 
@@ -100,7 +106,23 @@ impl EventHandler for MainState {
                     graphics::DrawMode::fill(),
                     pos,
                     shape.radius(),
-                    0.05,
+                    0.01,
+                    graphics::Color::new(1.0, 1.0, 1.0, 1.0),
+                );
+            } else if collider.shape().is_shape::<nc::shape::Cuboid<f32>>() {
+                let shape = collider
+                    .shape()
+                    .downcast_ref::<nc::shape::Cuboid<f32>>()
+                    .expect("bad shape");
+
+                mesh_builder.rectangle(
+                    graphics::DrawMode::fill(),
+                    graphics::Rect::new(
+                        pos[0] - shape.half_extents().x,
+                        pos[1] - shape.half_extents().y,
+                        shape.half_extents().x * 2.0,
+                        shape.half_extents().y * 2.0,
+                    ),
                     graphics::Color::new(1.0, 1.0, 1.0, 1.0),
                 );
             }
@@ -113,11 +135,33 @@ impl EventHandler for MainState {
 
         Ok(())
     }
+
+    fn resize_event(&mut self, ctx: &mut ggez::Context, width: f32, height: f32) {
+        let aspect_ratio = height / width;
+        let initial_ratio = 1.0;
+
+        if initial_ratio > aspect_ratio {
+            let new_width = SCREEN_X / aspect_ratio;
+            ggez::graphics::set_screen_coordinates(
+                ctx,
+                ggez::graphics::Rect::new(0.0, 0.0, new_width, SCREEN_Y),
+            )
+            .expect("error resizing");
+        } else {
+            let new_height = SCREEN_Y * aspect_ratio;
+            ggez::graphics::set_screen_coordinates(
+                ctx,
+                ggez::graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
+            )
+            .expect("error resizing");
+        }
+    }
 }
 
 fn main() -> ggez::GameResult {
     // create a mutable reference to a `Context` and `EventsLoop`
     let (ctx, event_loop) = &mut ggez::ContextBuilder::new("Pong", "Fish").build().unwrap();
+    ggez::graphics::set_mode(ctx, ggez::conf::WindowMode::default().resizable(true))?;
 
     let mut world = specs::World::new();
 
@@ -142,12 +186,24 @@ fn main() -> ggez::GameResult {
     let main_state = &mut MainState { world };
 
     let circle = RigidBodyDesc::new()
-        .translation(Vector::new(500.0, 1.0))
+        .translation(Vector::new(12.25, 1.0))
         .mass(1.0)
         .enable_gravity(true)
         .build();
+    main_state.add_body(ShapeHandle::new(nc::shape::Ball::new(2.0)), circle, 0.5, 0.5);
 
-    main_state.add_body(ShapeHandle::new(nc::shape::Ball::new(50.0)), circle);
+    let floor = RigidBodyDesc::new()
+        .translation(Vector::new(0.0, SCREEN_Y))
+        .status(np::object::BodyStatus::Static)
+        .enable_gravity(false)
+        .build();
+
+    main_state.add_body(
+        ShapeHandle::new(nc::shape::Cuboid::new(Vector::new(SCREEN_X * 5.0, 0.25))),
+        floor,
+        0.5,
+        0.5
+    );
 
     // Start the game
     ggez::event::run(ctx, event_loop, main_state)
