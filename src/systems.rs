@@ -1,8 +1,9 @@
+#![allow(clippy::type_complexity)]
 use specs::prelude::*;
 
 pub struct SelectedMoveSys;
 
-use crate::{BodySet, RigidBody, Selected, MechanicalWorld};
+use crate::{BodySet, MechanicalWorld, RigidBody, Selected};
 
 use crate::components::*;
 
@@ -13,12 +14,14 @@ impl<'a> System<'a> for SelectedMoveSys {
         ReadStorage<'a, Selected>,
         ReadStorage<'a, PhysicsBody>,
         Read<'a, MousePos>,
-        Read<'a, DT>,
         Option<Read<'a, MechanicalWorld>>,
         Option<Write<'a, BodySet>>,
     );
 
-    fn run(&mut self, (selected, physics_body, mouse_pos, dt, mechanical_world, mut body_set): Self::SystemData) {
+    fn run(
+        &mut self,
+        (selected, physics_body, mouse_pos, mechanical_world, mut body_set): Self::SystemData,
+    ) {
         (&selected, &physics_body)
             .join()
             .for_each(|(_, physics_body)| {

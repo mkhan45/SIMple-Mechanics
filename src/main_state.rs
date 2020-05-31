@@ -90,40 +90,84 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     }
 
     fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        use graphics::Color;
+
         graphics::clear(ctx, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
 
         let mut mesh_builder = graphics::MeshBuilder::new();
 
+        let entities = self.world.entities();
+
         let colliders = self.world.read_storage::<Collider>();
         let collider_set = self.world.fetch::<ColliderSet>();
 
-        colliders.join().for_each(|collider_comp| {
-            let collider = collider_set
-                .get(collider_comp.coll_handle)
-                .expect("error getting body to draw");
+        let selected = self.world.read_storage::<Selected>();
 
-            let (pos, rot) = {
-                let isometry = collider.position();
-                let na_vector = isometry.translation.vector;
-                ([na_vector.x, na_vector.y], isometry.rotation.angle())
-            };
+        (&colliders, &entities)
+            .join()
+            .for_each(|(collider_comp, e)| {
+                let collider = collider_set
+                    .get(collider_comp.coll_handle)
+                    .expect("error getting body to draw");
 
-            if collider.shape().is_shape::<nc::shape::Ball<f32>>() {
-                let shape = collider
-                    .shape()
-                    .downcast_ref::<nc::shape::Ball<f32>>()
-                    .expect("bad shape");
+                let (pos, rot) = {
+                    let isometry = collider.position();
+                    let na_vector = isometry.translation.vector;
+                    ([na_vector.x, na_vector.y], isometry.rotation.angle())
+                };
 
-                draw_circle(&mut mesh_builder, pos, rot, shape.radius());
-            } else if collider.shape().is_shape::<nc::shape::Cuboid<f32>>() {
-                let shape = collider
-                    .shape()
-                    .downcast_ref::<nc::shape::Cuboid<f32>>()
-                    .expect("bad shape");
+                if collider.shape().is_shape::<nc::shape::Ball<f32>>() {
+                    let shape = collider
+                        .shape()
+                        .downcast_ref::<nc::shape::Ball<f32>>()
+                        .expect("bad shape");
 
-                draw_rect(&mut mesh_builder, pos, rot, *shape.half_extents());
-            }
-        });
+                    draw_circle(
+                        &mut mesh_builder,
+                        pos,
+                        rot,
+                        shape.radius(),
+                        Color::new(1.0, 1.0, 1.0, 1.0),
+                        false,
+                    );
+
+                    if selected.get(e).is_some() {
+                        draw_circle(
+                            &mut mesh_builder,
+                            pos,
+                            rot,
+                            shape.radius(),
+                            Color::new(1.0, 0.0, 0.0, 1.0),
+                            true,
+                        );
+                    }
+                } else if collider.shape().is_shape::<nc::shape::Cuboid<f32>>() {
+                    let shape = collider
+                        .shape()
+                        .downcast_ref::<nc::shape::Cuboid<f32>>()
+                        .expect("bad shape");
+
+                    draw_rect(
+                        &mut mesh_builder,
+                        pos,
+                        rot,
+                        *shape.half_extents(),
+                        graphics::Color::new(1.0, 1.0, 1.0, 1.0),
+                        false,
+                    );
+
+                    if selected.get(e).is_some() {
+                        draw_rect(
+                            &mut mesh_builder,
+                            pos,
+                            rot,
+                            *shape.half_extents(),
+                            graphics::Color::new(1.0, 0.0, 0.0, 1.0),
+                            true,
+                        );
+                    }
+                }
+            });
 
         let mesh = mesh_builder.build(ctx)?;
         graphics::draw(ctx, &mesh, graphics::DrawParam::new())?;
@@ -209,17 +253,24 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     }
 }
 
-fn draw_circle(mesh_builder: &mut ggez::graphics::MeshBuilder, pos: [f32; 2], rot: f32, rad: f32) {
-    mesh_builder.circle(
-        graphics::DrawMode::fill(),
-        pos,
-        rad,
-        0.01,
-        graphics::Color::new(1.0, 1.0, 1.0, 1.0),
-    );
+fn draw_circle(
+    mesh_builder: &mut ggez::graphics::MeshBuilder,
+    pos: [f32; 2],
+    rot: f32,
+    rad: f32,
+    color: graphics::Color,
+    outline: bool,
+) {
+    let drawmode = if outline {
+        graphics::DrawMode::stroke(rad * 0.05)
+    } else {
+        graphics::DrawMode::fill()
+    };
+
+    mesh_builder.circle(drawmode, pos, rad, 0.01, color);
 
     mesh_builder.circle(
-        graphics::DrawMode::fill(),
+        drawmode,
         [
             pos[0] + rad * rot.cos() * 0.75,
             pos[1] + rad * rot.sin() * 0.75,
@@ -235,6 +286,8 @@ fn draw_rect(
     center_pos: [f32; 2],
     rot: f32,
     half_extents: Vector,
+    color: graphics::Color,
+    outline: bool,
 ) {
     let rot_cos = rot.cos();
     let rot_sin = rot.sin();
@@ -274,11 +327,13 @@ fn draw_rect(
 
     let points = _points.as_slice();
 
+    let drawmode = if outline {
+        graphics::DrawMode::stroke(half_extents.x.min(half_extents.y) * 0.125)
+    } else {
+        graphics::DrawMode::fill()
+    };
+
     mesh_builder
-        .polygon(
-            graphics::DrawMode::fill(),
-            points,
-            graphics::Color::new(1.0, 1.0, 1.0, 1.0),
-        )
+        .polygon(drawmode, points, color)
         .expect("error drawing rotated rect");
 }

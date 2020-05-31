@@ -71,7 +71,7 @@ fn main() -> ggez::GameResult {
 
     let circle = RigidBodyDesc::new()
         .translation(Vector::new(15.25, 1.0))
-        .mass(1.0)
+        .mass(12.5)
         .enable_gravity(true)
         .build();
     main_state.add_body(
@@ -82,7 +82,7 @@ fn main() -> ggez::GameResult {
     );
 
     let rect = RigidBodyDesc::new()
-        .mass(5.0)
+        .mass(8.0)
         .translation(Vector::new(8.0, 0.0))
         .rotation(std::f32::consts::PI / 3.0)
         .build();
