@@ -78,8 +78,14 @@ impl<'a, 'b> MainState<'a, 'b> {
             globals.set("SCREEN_Y", crate::SCREEN_Y).unwrap();
 
             lua_ctx.load(r#"
-                    function add_shape(rect)
-                        shapes[#shapes+1] = rect
+                    function add_shape(shape)
+                        shapes[#shapes+1] = shape
+                    end
+
+                    function add_shapes(...)
+                        for _, shape in ipairs{...} do
+                            add_shape(shape)
+                        end
                     end
                 "#).exec().unwrap();
 
