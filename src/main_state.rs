@@ -18,6 +18,8 @@ use crate::resources;
 use ncollide2d as nc;
 use nphysics2d as np;
 
+use rlua;
+
 pub struct MainState<'a, 'b> {
     pub world: specs::World,
     pub dispatcher: Dispatcher<'a, 'b>,
@@ -62,6 +64,71 @@ impl<'a, 'b> MainState<'a, 'b> {
             .get_mut(coll_handle)
             .unwrap()
             .set_user_data(Some(Box::new(specs_handle)));
+    }
+
+    pub fn add_shapes_from_lua(&mut self, filename: impl AsRef<std::path::Path>) {
+        let lua = rlua::Lua::new();
+
+        lua.context(|lua_ctx|{
+            let globals = lua_ctx.globals();
+            let shapes: Vec<rlua::Table> = Vec::new();
+            globals.set("shapes", shapes).unwrap();
+            globals.set("PI", std::f32::consts::PI).unwrap();
+            globals.set("SCREEN_X", crate::SCREEN_X).unwrap();
+            globals.set("SCREEN_Y", crate::SCREEN_Y).unwrap();
+
+            lua_ctx.load(r#"
+                    function add_shape(rect)
+                        shapes[#shapes+1] = rect
+                    end
+                "#).exec().unwrap();
+
+            let lua_code = std::fs::read_to_string(filename).unwrap();
+            lua_ctx.load(&lua_code).exec().unwrap();
+
+            globals.get::<_, Vec::<rlua::Table>>("shapes").unwrap().iter().for_each(|shape|{
+                let ty: String = shape.get("shape").unwrap();
+                let mass = shape.get("mass").unwrap_or(1.0);
+                let x = shape.get("x").unwrap();
+                let y = shape.get("y").unwrap();
+                let rotation = shape.get("rotation").unwrap_or(0.0);
+                let elasticity = shape.get("elasticity").unwrap_or(0.2);
+                let friction = shape.get("friction").unwrap_or(0.5);
+                let status = shape.get("status").unwrap_or("dynamic".to_string());
+                let status = match status.to_lowercase().as_str() {
+                    "static" => np::object::BodyStatus::Static,
+                    "kinematic" => np::object::BodyStatus::Kinematic,
+                    "dynamic" | _ => np::object::BodyStatus::Dynamic,
+                };
+
+                let rigid_body = crate::RigidBodyDesc::new()
+                    .mass(mass)
+                    .translation(Vector::new(x, y))
+                    .rotation(rotation)
+                    .status(status)
+                    .build();
+
+                let shape_handle = match ty.to_lowercase().as_str() {
+                    "rectangle" | "rect" => { 
+                        let w = shape.get("w").unwrap();
+                        let h = shape.get("h").unwrap();
+                        ShapeHandle::new(nc::shape::Cuboid::new(Vector::new(w, h)))
+                    },
+                    "circle" => {
+                        let rad = shape.get("r").unwrap();
+                        ShapeHandle::new(nc::shape::Ball::new(rad))
+                    },
+                    _ => panic!("invalid shape"),
+                };
+
+                self.add_body(
+                    shape_handle,
+                    rigid_body,
+                    elasticity,
+                    friction,
+                );
+            });
+        });
     }
 }
 
@@ -187,14 +254,14 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 ctx,
                 ggez::graphics::Rect::new(0.0, 0.0, new_width, SCREEN_Y),
             )
-            .expect("error resizing");
-        } else {
-            let new_height = SCREEN_Y * aspect_ratio;
-            ggez::graphics::set_screen_coordinates(
-                ctx,
-                ggez::graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
-            )
-            .expect("error resizing");
+                .expect("error resizing");
+            } else {
+                let new_height = SCREEN_Y * aspect_ratio;
+                ggez::graphics::set_screen_coordinates(
+                    ctx,
+                    ggez::graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
+                )
+                    .expect("error resizing");
         }
     }
 
@@ -272,8 +339,8 @@ fn draw_circle(
     mesh_builder.circle(
         drawmode,
         [
-            pos[0] + rad * rot.cos() * 0.75,
-            pos[1] + rad * rot.sin() * 0.75,
+        pos[0] + rad * rot.cos() * 0.75,
+        pos[1] + rad * rot.sin() * 0.75,
         ],
         rad * 0.15,
         0.01,
@@ -311,18 +378,18 @@ fn draw_rect(
             center_pos[1] + half_extents.y,
         ),
     ]
-    .iter()
-    .map(|point| {
-        // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
-        // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
-        [
-            rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
-                + center_pos[0],
-            rot_sin * (point.x - center_pos[0])
-                + rot_cos * (point.y - center_pos[1])
-                + center_pos[1],
-        ]
-    })
+        .iter()
+        .map(|point| {
+            // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
+            // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
+            [
+                rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
+                    + center_pos[0],
+                    rot_sin * (point.x - center_pos[0])
+                        + rot_cos * (point.y - center_pos[1])
+                        + center_pos[1],
+            ]
+        })
     .collect::<SmallVec<[[f32; 2]; 4]>>();
 
     let points = _points.as_slice();
@@ -336,4 +403,4 @@ fn draw_rect(
     mesh_builder
         .polygon(drawmode, points, color)
         .expect("error drawing rotated rect");
-}
+    }

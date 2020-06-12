@@ -69,53 +69,7 @@ fn main() -> ggez::GameResult {
     // Make a mutable reference to `MainState`
     let main_state = &mut MainState { world, dispatcher };
 
-    let circle = RigidBodyDesc::new()
-        .translation(Vector::new(15.25, 1.0))
-        .mass(12.5)
-        .enable_gravity(true)
-        .build();
-    main_state.add_body(
-        ShapeHandle::new(nc::shape::Ball::new(2.0)),
-        circle,
-        0.5,
-        0.5,
-    );
-
-    let rect = RigidBodyDesc::new()
-        .mass(8.0)
-        .translation(Vector::new(8.0, 0.0))
-        .rotation(std::f32::consts::PI / 3.0)
-        .build();
-    main_state.add_body(
-        ShapeHandle::new(nc::shape::Cuboid::new(Vector::new(2.0, 1.0))),
-        rect,
-        0.2,
-        0.5,
-    );
-
-    let floor = RigidBodyDesc::new()
-        .translation(Vector::new(0.0, SCREEN_Y))
-        .status(np::object::BodyStatus::Static)
-        .enable_gravity(false)
-        .build();
-    main_state.add_body(
-        ShapeHandle::new(nc::shape::Cuboid::new(Vector::new(SCREEN_X * 5.0, 0.25))),
-        floor,
-        0.5,
-        0.5,
-    );
-
-    let static_block = RigidBodyDesc::new()
-        .translation(Vector::new(SCREEN_X / 3.0, SCREEN_Y / 2.0))
-        .status(np::object::BodyStatus::Static)
-        .enable_gravity(false)
-        .build();
-    main_state.add_body(
-        ShapeHandle::new(nc::shape::Cuboid::new(Vector::new(0.1, 0.1))),
-        static_block,
-        0.5,
-        0.5,
-    );
+    main_state.add_shapes_from_lua("lua/init.lua");
 
     // Start the game
     ggez::event::run(ctx, event_loop, main_state)

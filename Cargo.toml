@@ -16,5 +16,7 @@ specs = { version = "0.15.1", features = ["specs-derive"] }
 
 smallvec = "1.4.0"
 
+rlua = "0.17.0"
+
 [profile.dev.package."*"]
 opt-level = 3
