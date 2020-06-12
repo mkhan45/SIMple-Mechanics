@@ -1,4 +1,4 @@
-use crate::{Vector, Point};
+use crate::{Point, Vector};
 use ncollide2d;
 
 #[derive(Copy, Clone)]
