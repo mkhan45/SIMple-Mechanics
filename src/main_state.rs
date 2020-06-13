@@ -84,6 +84,7 @@ impl<'a, 'b> MainState<'a, 'b> {
         });
     }
 
+    #[allow(clippy::many_single_char_names)]
     pub fn process_lua_shape(&mut self, shape: &rlua::Table) {
         let ty: String = shape.get("shape").unwrap();
         let mass = shape.get("mass").unwrap_or(1.0);
@@ -95,13 +96,15 @@ impl<'a, 'b> MainState<'a, 'b> {
         let status = shape
             .get("status")
             .unwrap_or_else(|_| "dynamic".to_string());
-        let color = shape.get("color").map_or(ggez::graphics::WHITE, |color: rlua::Table| {
-            let r = color.get("r").unwrap();
-            let g = color.get("g").unwrap();
-            let b = color.get("b").unwrap();
-            let a = color.get("a").unwrap_or(255);
-            ggez::graphics::Color::from_rgba(r, g, b, a)
-        });
+        let color = shape
+            .get("color")
+            .map_or(ggez::graphics::WHITE, |color: rlua::Table| {
+                let r = color.get("r").unwrap();
+                let g = color.get("g").unwrap();
+                let b = color.get("b").unwrap();
+                let a = color.get("a").unwrap_or(255);
+                ggez::graphics::Color::from_rgba(r, g, b, a)
+            });
 
         #[allow(clippy::wildcard_in_or_patterns)]
         let status = match status.to_lowercase().as_str() {
@@ -134,7 +137,9 @@ impl<'a, 'b> MainState<'a, 'b> {
     }
 
     pub fn process_lua_shapes(&mut self, shapes: Vec<rlua::Table>) {
-        shapes.iter().for_each(|shape| self.process_lua_shape(shape));
+        shapes
+            .iter()
+            .for_each(|shape| self.process_lua_shape(shape));
     }
 
     pub fn add_shapes_from_lua_file(&mut self, filename: impl AsRef<std::path::Path>) {
@@ -142,9 +147,7 @@ impl<'a, 'b> MainState<'a, 'b> {
         let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
         lua.lock().unwrap().context(|lua_ctx| {
             let globals = lua_ctx.globals();
-            let shapes = globals
-                .get::<_, Vec<rlua::Table>>("shapes")
-                .unwrap();
+            let shapes = globals.get::<_, Vec<rlua::Table>>("shapes").unwrap();
             self.process_lua_shapes(shapes);
 
             let shapes: Vec<rlua::Table> = Vec::new();
@@ -230,14 +233,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         .downcast_ref::<nc::shape::Ball<f32>>()
                         .expect("bad shape");
 
-                    draw_circle(
-                        &mut mesh_builder,
-                        pos,
-                        rot,
-                        shape.radius(),
-                        color.0,
-                        false,
-                    );
+                    draw_circle(&mut mesh_builder, pos, rot, shape.radius(), color.0, false);
 
                     if selected.get(e).is_some() {
                         draw_circle(
@@ -295,14 +291,14 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 ctx,
                 ggez::graphics::Rect::new(0.0, 0.0, new_width, SCREEN_Y),
             )
-                .expect("error resizing");
-            } else {
-                let new_height = SCREEN_Y * aspect_ratio;
-                ggez::graphics::set_screen_coordinates(
-                    ctx,
-                    ggez::graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
-                )
-                    .expect("error resizing");
+            .expect("error resizing");
+        } else {
+            let new_height = SCREEN_Y * aspect_ratio;
+            ggez::graphics::set_screen_coordinates(
+                ctx,
+                ggez::graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
+            )
+            .expect("error resizing");
         }
     }
 
@@ -380,8 +376,8 @@ fn draw_circle(
     mesh_builder.circle(
         drawmode,
         [
-        pos[0] + rad * rot.cos() * 0.75,
-        pos[1] + rad * rot.sin() * 0.75,
+            pos[0] + rad * rot.cos() * 0.75,
+            pos[1] + rad * rot.sin() * 0.75,
         ],
         rad * 0.15,
         0.01,
@@ -419,18 +415,18 @@ fn draw_rect(
             center_pos[1] + half_extents.y,
         ),
     ]
-        .iter()
-        .map(|point| {
-            // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
-            // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
-            [
-                rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
-                    + center_pos[0],
-                    rot_sin * (point.x - center_pos[0])
-                        + rot_cos * (point.y - center_pos[1])
-                        + center_pos[1],
-            ]
-        })
+    .iter()
+    .map(|point| {
+        // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
+        // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
+        [
+            rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
+                + center_pos[0],
+            rot_sin * (point.x - center_pos[0])
+                + rot_cos * (point.y - center_pos[1])
+                + center_pos[1],
+        ]
+    })
     .collect::<SmallVec<[[f32; 2]; 4]>>();
 
     let points = _points.as_slice();
@@ -444,4 +440,4 @@ fn draw_rect(
     mesh_builder
         .polygon(drawmode, points, color)
         .expect("error drawing rotated rect");
-    }
+}
