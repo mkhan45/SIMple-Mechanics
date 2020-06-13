@@ -79,6 +79,9 @@ fn main() -> ggez::GameResult {
                             add_shape(shape)
                         end
                     end
+
+                    function update()
+                    end
                 "#,
             )
             .exec()
