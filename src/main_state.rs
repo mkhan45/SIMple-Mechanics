@@ -32,6 +32,7 @@ impl<'a, 'b> MainState<'a, 'b> {
         body: RigidBody,
         restitution: f32,
         friction: f32,
+        color: ggez::graphics::Color,
     ) {
         let body_handle = self.world.fetch_mut::<BodySet>().insert(body);
 
@@ -49,6 +50,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             .create_entity()
             .with(PhysicsBody { body_handle })
             .with(Collider { coll_handle })
+            .with(Color(color))
             .build();
 
         self.world
@@ -66,88 +68,121 @@ impl<'a, 'b> MainState<'a, 'b> {
             .set_user_data(Some(Box::new(specs_handle)));
     }
 
-    pub fn add_shapes_from_lua(&mut self, filename: impl AsRef<std::path::Path>) {
-        let lua = rlua::Lua::new();
+    #[allow(dead_code)]
+    pub fn run_lua_code(&mut self, code: String) {
+        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
+        lua.lock().unwrap().context(|lua_ctx| {
+            lua_ctx.load(&code).exec().unwrap();
+        });
+    }
 
-        lua.context(|lua_ctx| {
-            let globals = lua_ctx.globals();
-            let shapes: Vec<rlua::Table> = Vec::new();
-            globals.set("shapes", shapes).unwrap();
-            globals.set("PI", std::f32::consts::PI).unwrap();
-            globals.set("SCREEN_X", crate::SCREEN_X).unwrap();
-            globals.set("SCREEN_Y", crate::SCREEN_Y).unwrap();
-
-            lua_ctx
-                .load(
-                    r#"
-                    function add_shape(shape)
-                        shapes[#shapes+1] = shape
-                    end
-
-                    function add_shapes(...)
-                        for _, shape in ipairs{...} do
-                            add_shape(shape)
-                        end
-                    end
-                "#,
-                )
-                .exec()
-                .unwrap();
-
+    pub fn run_lua_file(&mut self, filename: impl AsRef<std::path::Path>) {
+        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
+        lua.lock().unwrap().context(|lua_ctx| {
             let lua_code = std::fs::read_to_string(filename).unwrap();
             lua_ctx.load(&lua_code).exec().unwrap();
+        });
+    }
 
-            globals
-                .get::<_, Vec<rlua::Table>>("shapes")
-                .unwrap()
-                .iter()
-                .for_each(|shape| {
-                    let ty: String = shape.get("shape").unwrap();
-                    let mass = shape.get("mass").unwrap_or(1.0);
-                    let x = shape.get("x").unwrap();
-                    let y = shape.get("y").unwrap();
-                    let rotation = shape.get("rotation").unwrap_or(0.0);
-                    let elasticity = shape.get("elasticity").unwrap_or(0.2);
-                    let friction = shape.get("friction").unwrap_or(0.5);
-                    let status = shape
-                        .get("status")
-                        .unwrap_or_else(|_| "dynamic".to_string());
+    #[allow(clippy::many_single_char_names)]
+    pub fn process_lua_shape(&mut self, shape: &rlua::Table) {
+        let ty: String = shape.get("shape").unwrap();
+        let mass = shape.get("mass").unwrap_or(1.0);
+        let x = shape.get("x").unwrap();
+        let y = shape.get("y").unwrap();
+        let rotation = shape.get("rotation").unwrap_or(0.0);
+        let elasticity = shape.get("elasticity").unwrap_or(0.2);
+        let friction = shape.get("friction").unwrap_or(0.5);
+        let status = shape
+            .get("status")
+            .unwrap_or_else(|_| "dynamic".to_string());
+        let color = shape
+            .get("color")
+            .map_or(ggez::graphics::WHITE, |color: rlua::Table| {
+                let r = color.get("r").unwrap();
+                let g = color.get("g").unwrap();
+                let b = color.get("b").unwrap();
+                let a = color.get("a").unwrap_or(255);
+                ggez::graphics::Color::from_rgba(r, g, b, a)
+            });
 
-                    #[allow(clippy::wildcard_in_or_patterns)]
-                    let status = match status.to_lowercase().as_str() {
-                        "static" => np::object::BodyStatus::Static,
-                        "kinematic" => np::object::BodyStatus::Kinematic,
-                        "dynamic" | _ => np::object::BodyStatus::Dynamic,
-                    };
+        #[allow(clippy::wildcard_in_or_patterns)]
+        let status = match status.to_lowercase().as_str() {
+            "static" => np::object::BodyStatus::Static,
+            "kinematic" => np::object::BodyStatus::Kinematic,
+            "dynamic" | _ => np::object::BodyStatus::Dynamic,
+        };
 
-                    let rigid_body = crate::RigidBodyDesc::new()
-                        .mass(mass)
-                        .translation(Vector::new(x, y))
-                        .rotation(rotation)
-                        .status(status)
-                        .build();
+        let rigid_body = crate::RigidBodyDesc::new()
+            .mass(mass)
+            .translation(Vector::new(x, y))
+            .rotation(rotation)
+            .status(status)
+            .build();
 
-                    let shape_handle = match ty.to_lowercase().as_str() {
-                        "rectangle" | "rect" => {
-                            let w = shape.get("w").unwrap();
-                            let h = shape.get("h").unwrap();
-                            ShapeHandle::new(nc::shape::Cuboid::new(Vector::new(w, h)))
-                        }
-                        "circle" => {
-                            let rad = shape.get("r").unwrap();
-                            ShapeHandle::new(nc::shape::Ball::new(rad))
-                        }
-                        _ => panic!("invalid shape"),
-                    };
+        let shape_handle = match ty.to_lowercase().as_str() {
+            "rectangle" | "rect" => {
+                let w = shape.get("w").unwrap();
+                let h = shape.get("h").unwrap();
+                ShapeHandle::new(nc::shape::Cuboid::new(Vector::new(w, h)))
+            }
+            "circle" => {
+                let rad = shape.get("r").unwrap();
+                ShapeHandle::new(nc::shape::Ball::new(rad))
+            }
+            _ => panic!("invalid shape"),
+        };
 
-                    self.add_body(shape_handle, rigid_body, elasticity, friction);
-                });
+        self.add_body(shape_handle, rigid_body, elasticity, friction, color);
+    }
+
+    pub fn process_lua_shapes(&mut self, shapes: Vec<rlua::Table>) {
+        shapes
+            .iter()
+            .for_each(|shape| self.process_lua_shape(shape));
+    }
+
+    pub fn add_shapes_from_lua_file(&mut self, filename: impl AsRef<std::path::Path>) {
+        self.run_lua_file(filename);
+        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
+        lua.lock().unwrap().context(|lua_ctx| {
+            let globals = lua_ctx.globals();
+            let shapes = globals.get::<_, Vec<rlua::Table>>("shapes").unwrap();
+            self.process_lua_shapes(shapes);
+
+            let shapes: Vec<rlua::Table> = Vec::new();
+            globals.set("shapes", shapes).unwrap();
+        });
+    }
+
+    pub fn lua_update(&mut self) {
+        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
+        lua.lock().unwrap().context(|lua_ctx| {
+            lua_ctx.load("update()").exec().unwrap();
+            let globals = lua_ctx.globals();
+            if let Ok(true) = globals.get("ADD_SHAPES") {
+                self.process_lua_shapes(globals.get::<_, Vec<rlua::Table>>("shapes").unwrap());
+            }
+            globals.set("ADD_SHAPES", false).unwrap();
+
+            let shapes: Vec<rlua::Table> = Vec::new();
+            globals.set("shapes", shapes).unwrap();
         });
     }
 }
 
 impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        {
+            if ggez::timer::ticks(ctx) % 60 == 0 {
+                println!("FPS: {}", ggez::timer::fps(ctx));
+            }
+        }
+
+        {
+            self.lua_update();
+        }
+
         {
             self.world.insert(resources::DT(ggez::timer::delta(ctx)));
             self.dispatcher.dispatch(&self.world);
@@ -180,13 +215,14 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         let entities = self.world.entities();
 
         let colliders = self.world.read_storage::<Collider>();
+        let colors = self.world.read_storage::<crate::components::Color>();
         let collider_set = self.world.fetch::<ColliderSet>();
 
         let selected = self.world.read_storage::<Selected>();
 
-        (&colliders, &entities)
+        (&colliders, &colors, &entities)
             .join()
-            .for_each(|(collider_comp, e)| {
+            .for_each(|(collider_comp, color, e)| {
                 let collider = collider_set
                     .get(collider_comp.coll_handle)
                     .expect("error getting body to draw");
@@ -203,14 +239,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         .downcast_ref::<nc::shape::Ball<f32>>()
                         .expect("bad shape");
 
-                    draw_circle(
-                        &mut mesh_builder,
-                        pos,
-                        rot,
-                        shape.radius(),
-                        Color::new(1.0, 1.0, 1.0, 1.0),
-                        false,
-                    );
+                    draw_circle(&mut mesh_builder, pos, rot, shape.radius(), color.0, false);
 
                     if selected.get(e).is_some() {
                         draw_circle(
@@ -233,7 +262,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         pos,
                         rot,
                         *shape.half_extents(),
-                        graphics::Color::new(1.0, 1.0, 1.0, 1.0),
+                        color.0,
                         false,
                     );
 

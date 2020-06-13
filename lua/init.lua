@@ -1,29 +1,14 @@
 add_shapes(
    -- floor
-   {shape = "rect", x = 0, y = SCREEN_Y, status = "static", w = SCREEN_X * 5.0, h = 0.25, elasticity = 0.1},
+   {shape = "rect", x = 0, y = SCREEN_Y, status = "static", w = SCREEN_X * 5.0, h = 0.25, elasticity = 0.1}
 
-   {shape = "rect", x = 10.0, y = 16.0, w = 0.5, h = 1.25, mass = 5.0},
-   {shape = "rect", x = 8.0, y = 0.0, w = 2.0, h = 1.0, mass = 8.0, rotation = PI / 3.0},
-   {shape = "circle", x = 19.25, y = 1.0, r = 2.0, mass = 12.5, elasticity = 0.5},
+   -- {shape = "rect", x = 10.0, y = 16.0, w = 0.5, h = 1.25, mass = 5.0},
+   -- {shape = "rect", x = 8.0, y = 0.0, w = 2.0, h = 1.0, mass = 8.0, rotation = PI / 3.0},
+   -- {shape = "circle", x = 19.25, y = 1.0, r = 2.0, mass = 12.5, elasticity = 0.5},
 
    -- static floating square
-   {shape = "rect", x = SCREEN_X / 3.0, y = SCREEN_Y / 2.0, status = "static", w = 0.1, h = 0.1}
+   -- {shape = "rect", x = SCREEN_X / 3.0, y = SCREEN_Y / 2.0, status = "static", w = 0.1, h = 0.1}
 )
-
-for i = 1, 13 do
-   for j = 1, 20 do
-      add_shape({
-         shape = "rect", 
-         x = i * ((SCREEN_X * 0.9) / 10), 
-         y = j * ((SCREEN_Y * 0.9) / 20), 
-         w = 0.5, 
-         h = 0.5, 
-         r = 0.5,
-         elasticity = 0.05, 
-         friction = 1.0
-      })
-   end
-end
 
 function square(x)
    return x * x
@@ -59,4 +44,16 @@ function graph(eqn, start_x, end_x, steps, x_off, y_off)
    end
 end
 
-graph(eqn, -5, 5, 20, 1, 0)
+tick = 0
+width = 80
+
+function update()
+   if (tick % 90 == 0 and tick < 90 * 30) then
+      for i = 1, width do
+         add_shape({shape = "circle", x = 0.325 * i, y = 5 - tick / 60, r = 0.15, elasticity = 0.99,
+         color = {r = tick % 255, g = 255 - (tick % 255), b = math.floor(i / width * 255)}})
+      end
+   end
+   tick = tick + 1
+   ADD_SHAPES = true
+end
