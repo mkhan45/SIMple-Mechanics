@@ -9,6 +9,8 @@ use nalgebra as na;
 use ncollide2d as nc;
 use nphysics2d as np;
 
+use rlua;
+
 type Vector = nalgebra::Vector2<f32>;
 type Point = nalgebra::Point2<f32>;
 
@@ -56,6 +58,34 @@ fn main() -> ggez::GameResult {
 
     world.insert(resources::MousePos::default());
 
+    let lua = rlua::Lua::new();
+    lua.context(|lua_ctx| {
+        let globals = lua_ctx.globals();
+        let shapes: Vec<rlua::Table> = Vec::new();
+        globals.set("shapes", shapes).unwrap();
+        globals.set("PI", std::f32::consts::PI).unwrap();
+        globals.set("SCREEN_X", crate::SCREEN_X).unwrap();
+        globals.set("SCREEN_Y", crate::SCREEN_Y).unwrap();
+
+        lua_ctx
+            .load(
+                r#"
+                    function add_shape(shape)
+                        shapes[#shapes+1] = shape
+                    end
+
+                    function add_shapes(...)
+                        for _, shape in ipairs{...} do
+                            add_shape(shape)
+                        end
+                    end
+                "#,
+            )
+            .exec()
+            .unwrap();
+    });
+    world.insert(std::sync::Arc::new(std::sync::Mutex::new(lua)));
+
     world.register::<PhysicsBody>();
     world.register::<Collider>();
     world.register::<Selected>();
@@ -69,7 +99,7 @@ fn main() -> ggez::GameResult {
     // Make a mutable reference to `MainState`
     let main_state = &mut MainState { world, dispatcher };
 
-    main_state.add_shapes_from_lua("lua/init.lua");
+    main_state.add_shapes_from_lua_file("lua/init.lua");
 
     // Start the game
     ggez::event::run(ctx, event_loop, main_state)

@@ -66,37 +66,27 @@ impl<'a, 'b> MainState<'a, 'b> {
             .set_user_data(Some(Box::new(specs_handle)));
     }
 
-    pub fn add_shapes_from_lua(&mut self, filename: impl AsRef<std::path::Path>) {
-        let lua = rlua::Lua::new();
+    #[allow(dead_code)]
+    pub fn run_lua_code(&mut self, code: String) {
+        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
+        lua.lock().unwrap().context(|lua_ctx| {
+            lua_ctx.load(&code).exec().unwrap();
+        });
+    }
 
-        lua.context(|lua_ctx| {
-            let globals = lua_ctx.globals();
-            let shapes: Vec<rlua::Table> = Vec::new();
-            globals.set("shapes", shapes).unwrap();
-            globals.set("PI", std::f32::consts::PI).unwrap();
-            globals.set("SCREEN_X", crate::SCREEN_X).unwrap();
-            globals.set("SCREEN_Y", crate::SCREEN_Y).unwrap();
-
-            lua_ctx
-                .load(
-                    r#"
-                    function add_shape(shape)
-                        shapes[#shapes+1] = shape
-                    end
-
-                    function add_shapes(...)
-                        for _, shape in ipairs{...} do
-                            add_shape(shape)
-                        end
-                    end
-                "#,
-                )
-                .exec()
-                .unwrap();
-
+    pub fn run_lua_file(&mut self, filename: impl AsRef<std::path::Path>) {
+        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
+        lua.lock().unwrap().context(|lua_ctx| {
             let lua_code = std::fs::read_to_string(filename).unwrap();
             lua_ctx.load(&lua_code).exec().unwrap();
+        });
+    }
 
+    pub fn process_lua_shapes(&mut self) {
+        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
+
+        lua.lock().unwrap().context(|lua_ctx| {
+            let globals = lua_ctx.globals();
             globals
                 .get::<_, Vec<rlua::Table>>("shapes")
                 .unwrap()
@@ -142,7 +132,15 @@ impl<'a, 'b> MainState<'a, 'b> {
 
                     self.add_body(shape_handle, rigid_body, elasticity, friction);
                 });
+
+            let shapes: Vec<rlua::Table> = Vec::new();
+            globals.set("shapes", shapes).unwrap();
         });
+    }
+
+    pub fn add_shapes_from_lua_file(&mut self, filename: impl AsRef<std::path::Path>) {
+        self.run_lua_file(filename);
+        self.process_lua_shapes();
     }
 }
 
