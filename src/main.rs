@@ -92,6 +92,7 @@ fn main() -> ggez::GameResult {
     world.register::<PhysicsBody>();
     world.register::<Collider>();
     world.register::<Selected>();
+    world.register::<Color>();
 
     let mut dispatcher = DispatcherBuilder::new()
         .with(SelectedMoveSys, "selected_move_sys", &[])

@@ -14,7 +14,8 @@ tick = 0
 
 function update()
    if (tick % 60 == 0 and tick < 60 * 10) then
-      add_shape({shape = "circle", x = 12.5, y = 0, r = 0.2, elasticity = 0.999})
+      add_shape({shape = "circle", x = 12.5, y = 0, r = 0.2, elasticity = 0.999,
+                 color = {r = tick % 255, g = 255 - (tick % 255), b = 255}})
    end
    tick = tick + 1
    ADD_SHAPES = true

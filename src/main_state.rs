@@ -32,6 +32,7 @@ impl<'a, 'b> MainState<'a, 'b> {
         body: RigidBody,
         restitution: f32,
         friction: f32,
+        color: ggez::graphics::Color,
     ) {
         let body_handle = self.world.fetch_mut::<BodySet>().insert(body);
 
@@ -49,6 +50,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             .create_entity()
             .with(PhysicsBody { body_handle })
             .with(Collider { coll_handle })
+            .with(Color(color))
             .build();
 
         self.world
@@ -93,6 +95,13 @@ impl<'a, 'b> MainState<'a, 'b> {
         let status = shape
             .get("status")
             .unwrap_or_else(|_| "dynamic".to_string());
+        let color = shape.get("color").map_or(ggez::graphics::WHITE, |color: rlua::Table| {
+            let r = color.get("r").unwrap();
+            let g = color.get("g").unwrap();
+            let b = color.get("b").unwrap();
+            let a = color.get("a").unwrap_or(255);
+            ggez::graphics::Color::from_rgba(r, g, b, a)
+        });
 
         #[allow(clippy::wildcard_in_or_patterns)]
         let status = match status.to_lowercase().as_str() {
@@ -121,7 +130,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             _ => panic!("invalid shape"),
         };
 
-        self.add_body(shape_handle, rigid_body, elasticity, friction);
+        self.add_body(shape_handle, rigid_body, elasticity, friction, color);
     }
 
     pub fn process_lua_shapes(&mut self, shapes: Vec<rlua::Table>) {
@@ -151,7 +160,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             if let Ok(true) = globals.get("ADD_SHAPES") {
                 self.process_lua_shapes(globals.get::<_, Vec<rlua::Table>>("shapes").unwrap());
             }
-            globals.set("ADD_SHAPES", false);
+            globals.set("ADD_SHAPES", false).unwrap();
 
             let shapes: Vec<rlua::Table> = Vec::new();
             globals.set("shapes", shapes).unwrap();
@@ -197,13 +206,14 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         let entities = self.world.entities();
 
         let colliders = self.world.read_storage::<Collider>();
+        let colors = self.world.read_storage::<crate::components::Color>();
         let collider_set = self.world.fetch::<ColliderSet>();
 
         let selected = self.world.read_storage::<Selected>();
 
-        (&colliders, &entities)
+        (&colliders, &colors, &entities)
             .join()
-            .for_each(|(collider_comp, e)| {
+            .for_each(|(collider_comp, color, e)| {
                 let collider = collider_set
                     .get(collider_comp.coll_handle)
                     .expect("error getting body to draw");
@@ -225,7 +235,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         pos,
                         rot,
                         shape.radius(),
-                        Color::new(1.0, 1.0, 1.0, 1.0),
+                        color.0,
                         false,
                     );
 
@@ -250,7 +260,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         pos,
                         rot,
                         *shape.half_extents(),
-                        graphics::Color::new(1.0, 1.0, 1.0, 1.0),
+                        color.0,
                         false,
                     );
 
