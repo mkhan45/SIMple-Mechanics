@@ -55,6 +55,7 @@ fn main() -> ggez::GameResult {
     world.insert(force_gens);
 
     world.insert(resources::MousePos::default());
+    world.insert(resources::CreationData::default());
 
     world.register::<PhysicsBody>();
     world.register::<Collider>();

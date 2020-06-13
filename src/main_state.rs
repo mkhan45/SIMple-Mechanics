@@ -302,6 +302,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             let colliders = self.world.fetch::<ColliderSet>();
 
             let mouse_point = self.world.fetch::<resources::MousePos>().0;
+            println!("{} {}", mouse_point.x, mouse_point.y);
 
             let mut selected = self.world.write_storage::<Selected>();
 
