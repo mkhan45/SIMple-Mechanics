@@ -45,12 +45,16 @@ function graph(eqn, start_x, end_x, steps, x_off, y_off)
 end
 
 tick = 0
-width = 80
+width = 62
 
 function update()
-   if (tick % 90 == 0 and tick < 90 * 30) then
+   if (tick % 60 == 0 and tick > 0) then
+      print(string.format("FPS: %s, Mouse Pos: %.4f, %.4f", FPS, MOUSE_X, MOUSE_Y))
+   end
+
+   if (tick % 90 == 0 and tick < 90 * 10) then
       for i = 1, width do
-         add_shape({shape = "circle", x = 0.325 * i, y = 5 - tick / 60, r = 0.15, elasticity = 0.99,
+         add_shape({shape = "circle", x = 0.425 * i, y = 10 - tick / 60, r = 0.2, elasticity = 0.99,
          color = {r = tick % 255, g = 255 - (tick % 255), b = math.floor(i / width * 255)}})
       end
    end

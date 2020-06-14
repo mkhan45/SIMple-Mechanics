@@ -76,11 +76,18 @@ impl<'a, 'b> MainState<'a, 'b> {
         });
     }
 
-    pub fn run_lua_file(&mut self, filename: impl AsRef<std::path::Path>) {
+    pub fn run_lua_file(&mut self, filename: impl AsRef<std::path::Path> + std::clone::Clone) {
         let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
         lua.lock().unwrap().context(|lua_ctx| {
-            let lua_code = std::fs::read_to_string(filename).unwrap();
-            lua_ctx.load(&lua_code).exec().unwrap();
+            let lua_code = std::fs::read_to_string(filename.clone()).unwrap();
+            if let Err(e) = lua_ctx
+                .load(&lua_code)
+                .set_name(&filename.as_ref().file_name().unwrap().to_str().unwrap())
+                .unwrap()
+                .exec()
+            {
+                println!("Lua {}", e.to_string());
+            };
         });
     }
 
@@ -142,7 +149,10 @@ impl<'a, 'b> MainState<'a, 'b> {
             .for_each(|shape| self.process_lua_shape(shape));
     }
 
-    pub fn add_shapes_from_lua_file(&mut self, filename: impl AsRef<std::path::Path>) {
+    pub fn add_shapes_from_lua_file(
+        &mut self,
+        filename: impl AsRef<std::path::Path> + std::clone::Clone,
+    ) {
         self.run_lua_file(filename);
         let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
         lua.lock().unwrap().context(|lua_ctx| {
@@ -164,6 +174,17 @@ impl<'a, 'b> MainState<'a, 'b> {
                 self.process_lua_shapes(globals.get::<_, Vec<rlua::Table>>("shapes").unwrap());
             }
             globals.set("ADD_SHAPES", false).unwrap();
+            globals
+                .set("FPS", self.world.fetch::<resources::FPS>().0)
+                .unwrap();
+            globals
+                .set("DT", self.world.fetch::<resources::DT>().0.as_millis())
+                .unwrap();
+            {
+                let mouse_pos = self.world.fetch::<resources::MousePos>().0;
+                globals.set("MOUSE_X", mouse_pos.x).unwrap();
+                globals.set("MOUSE_Y", mouse_pos.y).unwrap();
+            }
 
             let shapes: Vec<rlua::Table> = Vec::new();
             globals.set("shapes", shapes).unwrap();
@@ -174,9 +195,8 @@ impl<'a, 'b> MainState<'a, 'b> {
 impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         {
-            if ggez::timer::ticks(ctx) % 60 == 0 {
-                println!("FPS: {}", ggez::timer::fps(ctx));
-            }
+            self.world.insert(resources::DT(ggez::timer::delta(ctx)));
+            self.world.insert(resources::FPS(ggez::timer::fps(ctx)));
         }
 
         {
@@ -184,7 +204,6 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         }
 
         {
-            self.world.insert(resources::DT(ggez::timer::delta(ctx)));
             self.dispatcher.dispatch(&self.world);
         }
 

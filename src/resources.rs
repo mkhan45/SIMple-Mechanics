@@ -42,3 +42,6 @@ impl Default for CreationData {
 }
 
 pub type LuaRes = std::sync::Arc<std::sync::Mutex<rlua::Lua>>;
+
+#[derive(Copy, Clone, Default)]
+pub struct FPS(pub f64);
