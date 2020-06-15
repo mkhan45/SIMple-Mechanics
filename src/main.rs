@@ -87,13 +87,14 @@ fn main() -> ggez::GameResult {
             )
             .exec()
             .unwrap();
-    });
+        });
     world.insert(std::sync::Arc::new(std::sync::Mutex::new(lua)));
 
     world.register::<PhysicsBody>();
     world.register::<Collider>();
     world.register::<Selected>();
     world.register::<Color>();
+    world.register::<Name>();
 
     let mut dispatcher = DispatcherBuilder::new()
         .with(SelectedMoveSys, "selected_move_sys", &[])

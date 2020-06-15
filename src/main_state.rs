@@ -30,10 +30,11 @@ impl<'a, 'b> MainState<'a, 'b> {
         &mut self,
         shape: ShapeHandle,
         body: RigidBody,
+        name: Option<String>,
         restitution: f32,
         friction: f32,
         color: ggez::graphics::Color,
-    ) {
+    ) -> Entity {
         let body_handle = self.world.fetch_mut::<BodySet>().insert(body);
 
         let coll = np::object::ColliderDesc::new(shape)
@@ -45,13 +46,16 @@ impl<'a, 'b> MainState<'a, 'b> {
 
         let coll_handle = self.world.fetch_mut::<ColliderSet>().insert(coll);
 
-        let specs_handle = self
+        let mut specs_handle = self
             .world
             .create_entity()
             .with(PhysicsBody { body_handle })
             .with(Collider { coll_handle })
-            .with(Color(color))
-            .build();
+            .with(Color(color));
+        if let Some(n) = name {
+            specs_handle = specs_handle.with(Name(n));
+        }
+        let specs_handle = specs_handle.build();
 
         self.world
             .get_mut::<BodySet>()
@@ -66,6 +70,8 @@ impl<'a, 'b> MainState<'a, 'b> {
             .get_mut(coll_handle)
             .unwrap()
             .set_user_data(Some(Box::new(specs_handle)));
+
+        return specs_handle;
     }
 
     #[allow(dead_code)]
@@ -97,9 +103,13 @@ impl<'a, 'b> MainState<'a, 'b> {
         let mass = shape.get("mass").unwrap_or(1.0);
         let x = shape.get("x").unwrap();
         let y = shape.get("y").unwrap();
+        let x_vel = shape.get("x_vel").unwrap_or(0.0);
+        let y_vel = shape.get("y_vel").unwrap_or(0.0);
+        let rotvel = shape.get("rotvel").unwrap_or(0.0);
         let rotation = shape.get("rotation").unwrap_or(0.0);
         let elasticity = shape.get("elasticity").unwrap_or(0.2);
         let friction = shape.get("friction").unwrap_or(0.5);
+        let name = shape.get("name");
         let status = shape
             .get("status")
             .unwrap_or_else(|_| "dynamic".to_string());
@@ -124,6 +134,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             .mass(mass)
             .translation(Vector::new(x, y))
             .rotation(rotation)
+            .velocity(np::math::Velocity::new(Vector::new(x_vel, y_vel), rotvel))
             .status(status)
             .build();
 
@@ -140,7 +151,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             _ => panic!("invalid shape"),
         };
 
-        self.add_body(shape_handle, rigid_body, elasticity, friction, color);
+        self.add_body(shape_handle, rigid_body, name.unwrap_or(None), elasticity, friction, color);
     }
 
     pub fn process_lua_shapes(&mut self, shapes: Vec<rlua::Table>) {
@@ -173,6 +184,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             if let Ok(true) = globals.get("ADD_SHAPES") {
                 self.process_lua_shapes(globals.get::<_, Vec<rlua::Table>>("shapes").unwrap());
             }
+
             globals.set("ADD_SHAPES", false).unwrap();
             globals
                 .set("FPS", self.world.fetch::<resources::FPS>().0)
@@ -180,6 +192,26 @@ impl<'a, 'b> MainState<'a, 'b> {
             globals
                 .set("DT", self.world.fetch::<resources::DT>().0.as_millis())
                 .unwrap();
+
+            {
+                pub struct LuaEntity(pub Entity);
+                impl rlua::UserData for LuaEntity { 
+                    fn add_methods<'lua, M: rlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
+                        methods.add_method("id", |_, this, _: ()| {
+                            Ok(this.0.id())
+                        });
+                    }
+                }
+
+                let entities = self.world.entities();
+                let names = self.world.read_storage::<Name>();
+                let lua_objects = lua_ctx.create_table().unwrap();
+                (&entities, &names).join().for_each(|(entity, name)|{
+                    lua_objects.set(name.0.as_str(), LuaEntity(entity)).unwrap();
+                });
+                globals.set("OBJECTS", lua_objects).unwrap();
+            }
+
             {
                 let mouse_pos = self.world.fetch::<resources::MousePos>().0;
                 globals.set("MOUSE_X", mouse_pos.x).unwrap();

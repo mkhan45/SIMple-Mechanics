@@ -24,3 +24,7 @@ pub struct Selected;
 #[derive(Debug, Copy, Clone, Component)]
 #[storage(VecStorage)]
 pub struct Color(pub ggez::graphics::Color);
+
+#[derive(Debug, Clone, Component)]
+#[storage(HashMapStorage)]
+pub struct Name(pub String);
