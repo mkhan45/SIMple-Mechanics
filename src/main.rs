@@ -5,11 +5,11 @@ use main_state::MainState;
 
 mod resources;
 
+mod lua;
+
 use nalgebra as na;
 use ncollide2d as nc;
 use nphysics2d as np;
-
-use rlua;
 
 type Vector = nalgebra::Vector2<f32>;
 type Point = nalgebra::Point2<f32>;
@@ -42,7 +42,7 @@ fn main() -> ggez::GameResult {
 
     let mut world = specs::World::new();
 
-    let mut mechanical_world = MechanicalWorld::new(Vector::new(0.0, 9.81));
+    let mechanical_world = MechanicalWorld::new(Vector::new(0.0, 9.81));
     let geometrical_world: GeometricalWorld = GeometricalWorld::new();
     let bodies: BodySet = BodySet::new();
     let colliders: ColliderSet = ColliderSet::new();
@@ -87,7 +87,7 @@ fn main() -> ggez::GameResult {
             )
             .exec()
             .unwrap();
-        });
+    });
     world.insert(std::sync::Arc::new(std::sync::Mutex::new(lua)));
 
     world.register::<PhysicsBody>();

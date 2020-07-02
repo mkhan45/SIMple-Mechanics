@@ -48,11 +48,11 @@ tick = 0
 width = 62
 
 function update()
-   if OBJECTS ~= nil then
-      for k, v in pairs(OBJECTS) do
-         print(v:id())
-      end
-   end
+   -- if OBJECTS ~= nil then
+   --    for k, v in pairs(OBJECTS) do
+   --       print(v:id())
+   --    end
+   -- end
    -- if (tick % 60 == 0 and tick > 0) then
    --    print(string.format("FPS: %s, Mouse Pos: %.4f, %.4f", FPS, MOUSE_X, MOUSE_Y))
    -- end

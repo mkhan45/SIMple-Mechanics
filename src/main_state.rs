@@ -7,96 +7,123 @@ use specs::prelude::*;
 
 use crate::{
     BodySet, Collider, ColliderSet, ForceGeneratorSet, GeometricalWorld, JointConstraintSet,
-    MechanicalWorld, Point, RigidBody, ShapeHandle, Vector,
+    MechanicalWorld, Point, ShapeHandle, Vector,
 };
 use crate::{SCREEN_X, SCREEN_Y};
 
 use crate::components::*;
 
-use crate::resources;
+use crate::lua::LuaResExt;
+use crate::resources::{self, LuaRes, ShapeInfo};
+use crate::RigidBodyDesc;
 
 use ncollide2d as nc;
 use nphysics2d as np;
-
-use rlua;
 
 pub struct MainState<'a, 'b> {
     pub world: specs::World,
     pub dispatcher: Dispatcher<'a, 'b>,
 }
 
-impl<'a, 'b> MainState<'a, 'b> {
-    pub fn add_body(
-        &mut self,
-        shape: ShapeHandle,
-        body: RigidBody,
-        name: Option<String>,
-        restitution: f32,
-        friction: f32,
-        color: ggez::graphics::Color,
-    ) -> Entity {
-        let body_handle = self.world.fetch_mut::<BodySet>().insert(body);
+pub struct BodyBuilder<'a> {
+    body_set: Write<'a, BodySet>,
+    collider_set: Write<'a, ColliderSet>,
+    lazy_update: Read<'a, LazyUpdate>,
+    entities: Entities<'a>,
+    shape: ShapeHandle,
+    mass: f32,
+    translation: Vector,
+    rotation: f32,
+    velocity: Vector,
+    rotvel: f32,
+    status: np::object::BodyStatus,
+    restitution: f32,
+    friction: f32,
+    color: ggez::graphics::Color,
+    name: Option<String>,
+}
 
-        let coll = np::object::ColliderDesc::new(shape)
+impl<'a> BodyBuilder<'a> {
+    pub fn new(
+        body_set: Write<'a, BodySet>,
+        collider_set: Write<'a, ColliderSet>,
+        lazy_update: Read<'a, LazyUpdate>,
+        entities: Entities<'a>,
+        shape_info: ShapeInfo,
+        mass: f32,
+    ) -> Self {
+        let shape = match shape_info {
+            ShapeInfo::Circle(r) => ShapeHandle::new(nc::shape::Ball::new(r)),
+            ShapeInfo::Rectangle(v) => ShapeHandle::new(nc::shape::Cuboid::new(v)),
+        };
+
+        BodyBuilder {
+            body_set,
+            collider_set,
+            lazy_update,
+            entities,
+            shape,
+            mass,
+            translation: Vector::new(0.0, 0.0),
+            rotation: 0.0,
+            velocity: Vector::new(0.0, 0.0),
+            rotvel: 0.0,
+            status: np::object::BodyStatus::Dynamic,
+            restitution: 0.2,
+            friction: 0.5,
+            color: ggez::graphics::WHITE,
+            name: None,
+        }
+    }
+
+    pub fn create(mut self) -> Entity {
+        let body = RigidBodyDesc::new()
+            .mass(self.mass)
+            .translation(self.translation)
+            .rotation(self.rotation)
+            .velocity(np::math::Velocity::new(self.velocity, self.rotvel))
+            .status(self.status)
+            .build();
+
+        let body_handle = self.body_set.insert(body);
+
+        let coll = np::object::ColliderDesc::new(self.shape)
             .density(1.0)
             .set_material(np::material::MaterialHandle::new(
-                np::material::BasicMaterial::new(restitution, friction),
+                np::material::BasicMaterial::new(self.restitution, self.friction),
             ))
             .build(np::object::BodyPartHandle(body_handle, 0));
 
-        let coll_handle = self.world.fetch_mut::<ColliderSet>().insert(coll);
+        let coll_handle = self.collider_set.insert(coll);
 
         let mut specs_handle = self
-            .world
-            .create_entity()
+            .lazy_update
+            .create_entity(&self.entities)
             .with(PhysicsBody { body_handle })
             .with(Collider { coll_handle })
-            .with(Color(color));
-        if let Some(n) = name {
+            .with(Color(self.color));
+
+        if let Some(n) = self.name {
             specs_handle = specs_handle.with(Name(n));
         }
-        let specs_handle = specs_handle.build();
 
-        self.world
-            .get_mut::<BodySet>()
-            .expect("Error getting body set")
+        let specs_handle = specs_handle.entity;
+
+        self.body_set
             .rigid_body_mut(body_handle)
             .unwrap()
             .set_user_data(Some(Box::new(specs_handle)));
 
-        self.world
-            .get_mut::<ColliderSet>()
-            .expect("Error getting collider set")
+        self.collider_set
             .get_mut(coll_handle)
             .unwrap()
             .set_user_data(Some(Box::new(specs_handle)));
 
-        return specs_handle;
+        specs_handle
     }
+}
 
-    #[allow(dead_code)]
-    pub fn run_lua_code(&mut self, code: String) {
-        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
-        lua.lock().unwrap().context(|lua_ctx| {
-            lua_ctx.load(&code).exec().unwrap();
-        });
-    }
-
-    pub fn run_lua_file(&mut self, filename: impl AsRef<std::path::Path> + std::clone::Clone) {
-        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
-        lua.lock().unwrap().context(|lua_ctx| {
-            let lua_code = std::fs::read_to_string(filename.clone()).unwrap();
-            if let Err(e) = lua_ctx
-                .load(&lua_code)
-                .set_name(&filename.as_ref().file_name().unwrap().to_str().unwrap())
-                .unwrap()
-                .exec()
-            {
-                println!("Lua {}", e.to_string());
-            };
-        });
-    }
-
+impl<'a, 'b> MainState<'a, 'b> {
     #[allow(clippy::many_single_char_names)]
     pub fn process_lua_shape(&mut self, shape: &rlua::Table) {
         let ty: String = shape.get("shape").unwrap();
@@ -130,28 +157,43 @@ impl<'a, 'b> MainState<'a, 'b> {
             "dynamic" | _ => np::object::BodyStatus::Dynamic,
         };
 
-        let rigid_body = crate::RigidBodyDesc::new()
-            .mass(mass)
-            .translation(Vector::new(x, y))
-            .rotation(rotation)
-            .velocity(np::math::Velocity::new(Vector::new(x_vel, y_vel), rotvel))
-            .status(status)
-            .build();
-
-        let shape_handle = match ty.to_lowercase().as_str() {
+        let shape_info = match ty.to_lowercase().as_str() {
             "rectangle" | "rect" => {
                 let w = shape.get("w").unwrap();
                 let h = shape.get("h").unwrap();
-                ShapeHandle::new(nc::shape::Cuboid::new(Vector::new(w, h)))
+                ShapeInfo::Rectangle(Vector::new(w, h))
             }
             "circle" => {
                 let rad = shape.get("r").unwrap();
-                ShapeHandle::new(nc::shape::Ball::new(rad))
+                ShapeInfo::Circle(rad)
             }
             _ => panic!("invalid shape"),
         };
 
-        self.add_body(shape_handle, rigid_body, name.unwrap_or(None), elasticity, friction, color);
+        {
+            BodyBuilder {
+                translation: Vector::new(x, y),
+                rotation,
+                velocity: Vector::new(x_vel, y_vel),
+                rotvel,
+                status,
+                restitution: elasticity,
+                friction,
+                color,
+                name: name.ok(),
+                ..BodyBuilder::new(
+                    self.world.fetch_mut::<BodySet>().into(),
+                    self.world.fetch_mut::<ColliderSet>().into(),
+                    self.world.fetch::<LazyUpdate>().into(),
+                    self.world.entities(),
+                    shape_info,
+                    mass,
+                )
+            }
+            .create();
+        }
+
+        self.world.maintain();
     }
 
     pub fn process_lua_shapes(&mut self, shapes: Vec<rlua::Table>) {
@@ -164,8 +206,8 @@ impl<'a, 'b> MainState<'a, 'b> {
         &mut self,
         filename: impl AsRef<std::path::Path> + std::clone::Clone,
     ) {
-        self.run_lua_file(filename);
-        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
+        let lua = self.world.fetch_mut::<LuaRes>().clone();
+        lua.run_lua_file(filename);
         lua.lock().unwrap().context(|lua_ctx| {
             let globals = lua_ctx.globals();
             let shapes = globals.get::<_, Vec<rlua::Table>>("shapes").unwrap();
@@ -195,18 +237,16 @@ impl<'a, 'b> MainState<'a, 'b> {
 
             {
                 pub struct LuaEntity(pub Entity);
-                impl rlua::UserData for LuaEntity { 
+                impl rlua::UserData for LuaEntity {
                     fn add_methods<'lua, M: rlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
-                        methods.add_method("id", |_, this, _: ()| {
-                            Ok(this.0.id())
-                        });
+                        methods.add_method("id", |_, this, _: ()| Ok(this.0.id()));
                     }
                 }
 
                 let entities = self.world.entities();
                 let names = self.world.read_storage::<Name>();
                 let lua_objects = lua_ctx.create_table().unwrap();
-                (&entities, &names).join().for_each(|(entity, name)|{
+                (&entities, &names).join().for_each(|(entity, name)| {
                     lua_objects.set(name.0.as_str(), LuaEntity(entity)).unwrap();
                 });
                 globals.set("OBJECTS", lua_objects).unwrap();

@@ -1,6 +1,4 @@
 use crate::{Point, Vector};
-use ncollide2d;
-
 #[derive(Copy, Clone)]
 pub struct MousePos(pub Vector);
 
