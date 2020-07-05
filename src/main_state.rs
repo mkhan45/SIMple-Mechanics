@@ -125,6 +125,8 @@ impl<'a> BodyBuilder<'a> {
 
 impl<'a, 'b> MainState<'a, 'b> {
     #[allow(clippy::many_single_char_names)]
+    /// must call world.maintain() after calling this for shape to actually get added
+    /// in practice this should only be used in process_lua_shapes() so it should be fine
     pub fn process_lua_shape(&mut self, shape: &rlua::Table) {
         let ty: String = shape.get("shape").unwrap();
         let mass = shape.get("mass").unwrap_or(1.0);
@@ -170,36 +172,33 @@ impl<'a, 'b> MainState<'a, 'b> {
             _ => panic!("invalid shape"),
         };
 
-        {
-            BodyBuilder {
-                translation: Vector::new(x, y),
-                rotation,
-                velocity: Vector::new(x_vel, y_vel),
-                rotvel,
-                status,
-                restitution: elasticity,
-                friction,
-                color,
-                name: name.ok(),
-                ..BodyBuilder::new(
-                    self.world.fetch_mut::<BodySet>().into(),
-                    self.world.fetch_mut::<ColliderSet>().into(),
-                    self.world.fetch::<LazyUpdate>().into(),
-                    self.world.entities(),
-                    shape_info,
-                    mass,
-                )
-            }
-            .create();
+        BodyBuilder {
+            translation: Vector::new(x, y),
+            rotation,
+            velocity: Vector::new(x_vel, y_vel),
+            rotvel,
+            status,
+            restitution: elasticity,
+            friction,
+            color,
+            name: name.ok(),
+            ..BodyBuilder::new(
+                self.world.fetch_mut::<BodySet>().into(),
+                self.world.fetch_mut::<ColliderSet>().into(),
+                self.world.fetch::<LazyUpdate>().into(),
+                self.world.entities(),
+                shape_info,
+                mass,
+            )
         }
-
-        self.world.maintain();
+        .create();
     }
 
     pub fn process_lua_shapes(&mut self, shapes: Vec<rlua::Table>) {
         shapes
             .iter()
             .for_each(|shape| self.process_lua_shape(shape));
+        self.world.maintain();
     }
 
     pub fn add_shapes_from_lua_file(
