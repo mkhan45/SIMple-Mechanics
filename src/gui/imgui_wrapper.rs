@@ -164,7 +164,6 @@ impl ImGuiWrapper {
         &mut self,
         ctx: &mut Context,
         hidpi_factor: f32,
-        items_hovered: &mut bool,
     ) {
         // Update mouse
         self.update_mouse();
@@ -192,7 +191,6 @@ impl ImGuiWrapper {
             }
             make_menu_bar(&mut ui, &mut self.sent_signals, &mut self.render_data);
         }
-        *items_hovered = ui.is_any_item_hovered();
 
         // Render
         let (factory, _, encoder, _, render_target) = graphics::gfx_objects(ctx);
@@ -205,13 +203,6 @@ impl ImGuiWrapper {
                 draw_data,
             )
             .unwrap();
-
-        if !self.sidemenu {
-            self.remove_sidemenu();
-        }
-        if !self.graph {
-            self.shown_menus.remove(&UiChoice::Graph);
-        }
     }
 
     pub fn remove_sidemenu(&mut self) {

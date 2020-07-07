@@ -1,4 +1,6 @@
 use crate::{Point, Vector};
+use crate::gui::imgui_wrapper::ImGuiWrapper;
+
 #[derive(Copy, Clone)]
 pub struct MousePos(pub Vector);
 
@@ -43,3 +45,6 @@ pub type LuaRes = std::sync::Arc<std::sync::Mutex<rlua::Lua>>;
 
 #[derive(Copy, Clone, Default)]
 pub struct FPS(pub f64);
+
+#[derive(Copy, Clone, Default)]
+pub struct HiDPIFactor(pub f32);

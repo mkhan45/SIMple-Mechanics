@@ -17,12 +17,16 @@ use crate::lua::LuaResExt;
 use crate::resources::{self, LuaRes, ShapeInfo};
 use crate::RigidBodyDesc;
 
+use crate::gui::imgui_wrapper::ImGuiWrapper;
+
 use ncollide2d as nc;
 use nphysics2d as np;
+use resources::HiDPIFactor;
 
 pub struct MainState<'a, 'b> {
     pub world: specs::World,
     pub dispatcher: Dispatcher<'a, 'b>,
+    pub imgui_wrapper: ImGuiWrapper,
 }
 
 pub struct BodyBuilder<'a> {
@@ -370,6 +374,9 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             });
 
         let mesh = mesh_builder.build(ctx)?;
+
+        self.imgui_wrapper.render(ctx, self.world.fetch::<HiDPIFactor>().0);
+
         graphics::draw(ctx, &mesh, graphics::DrawParam::new())?;
 
         graphics::present(ctx)?;
