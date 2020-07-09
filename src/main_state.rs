@@ -1,7 +1,13 @@
 use smallvec::SmallVec;
 
 use ggez::event::EventHandler;
-use ggez::{graphics, input::mouse::MouseButton};
+use ggez::{
+    graphics,
+    input::{
+        keyboard::{KeyCode, KeyMods},
+        mouse::MouseButton,
+    },
+};
 
 use specs::prelude::*;
 
@@ -295,7 +301,10 @@ impl<'a, 'b> MainState<'a, 'b> {
             let mouse_pos = self.world.fetch::<MousePos>().0;
             let mouse_drag_vec = mouse_pos - start_pos;
             match create_shape_data {
-                CreateShapeData{ shape: ShapeInfo::Rectangle(_), centered: true } => {
+                CreateShapeData {
+                    shape: ShapeInfo::Rectangle(_),
+                    centered: true,
+                } => {
                     let v = mouse_drag_vec.abs();
                     mesh_builder.rectangle(
                         graphics::DrawMode::stroke(0.1),
@@ -308,7 +317,10 @@ impl<'a, 'b> MainState<'a, 'b> {
                         graphics::WHITE,
                     );
                 }
-                CreateShapeData{ shape: ShapeInfo::Circle(_), centered: true } => {
+                CreateShapeData {
+                    shape: ShapeInfo::Circle(_),
+                    centered: true,
+                } => {
                     let r = mouse_drag_vec.magnitude();
                     draw_circle(
                         mesh_builder,
@@ -574,7 +586,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                                 )
                             }
                             .create();
-                            }
+                        }
                         _ => unimplemented!(),
                     }
                 }
@@ -584,6 +596,30 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
         self.world.insert(resources::MouseStartPos(None));
         self.world.insert(CreationData(None));
+    }
+
+    fn key_down_event(
+        &mut self,
+        _ctx: &mut ggez::Context,
+        btn: KeyCode,
+        _keymods: KeyMods,
+        _repeat: bool,
+    ) {
+        match btn {
+            KeyCode::B => {
+                self.world.insert(CreationData(Some(CreateShapeData {
+                    shape: ShapeInfo::Rectangle(None),
+                    centered: true,
+                })));
+            }
+            KeyCode::C => {
+                self.world.insert(CreationData(Some(CreateShapeData {
+                    shape: ShapeInfo::Circle(None),
+                    centered: true,
+                })));
+            }
+            _ => {}
+        }
     }
 }
 
@@ -606,8 +642,8 @@ fn draw_circle(
     mesh_builder.circle(
         drawmode,
         [
-        pos[0] + rad * rot.cos() * 0.75,
-        pos[1] + rad * rot.sin() * 0.75,
+            pos[0] + rad * rot.cos() * 0.75,
+            pos[1] + rad * rot.sin() * 0.75,
         ],
         rad * 0.15,
         0.01,
@@ -645,18 +681,18 @@ fn draw_rect(
             center_pos[1] + half_extents.y,
         ),
     ]
-        .iter()
-        .map(|point| {
-            // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
-            // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
-            [
-                rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
-                    + center_pos[0],
-                    rot_sin * (point.x - center_pos[0])
-                        + rot_cos * (point.y - center_pos[1])
-                        + center_pos[1],
-            ]
-        })
+    .iter()
+    .map(|point| {
+        // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
+        // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
+        [
+            rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
+                + center_pos[0],
+            rot_sin * (point.x - center_pos[0])
+                + rot_cos * (point.y - center_pos[1])
+                + center_pos[1],
+        ]
+    })
     .collect::<SmallVec<[[f32; 2]; 4]>>();
 
     let points = _points.as_slice();
@@ -670,4 +706,4 @@ fn draw_rect(
     mesh_builder
         .polygon(drawmode, points, color)
         .expect("error drawing rotated rect");
-    }
+}
