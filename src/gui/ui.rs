@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::gui::imgui_wrapper::*;
-use crate::Vector;
+use crate::{resources::ShapeInfo, Vector};
 
 macro_rules! signal_button {
     ( $label:expr, $signal:expr, $ui:expr, $signals:expr) => {
@@ -31,6 +31,20 @@ pub fn make_menu_bar(
     render_data: &mut RenderData,
 ) {
     ui.main_menu_bar(|| {
+        ui.menu(im_str!("Create Shape"), true, || {
+            signal_button!(
+                "Rectangle",
+                UiSignal::AddShape(ShapeInfo::Rectangle(None)),
+                ui,
+                signals
+            );
+            signal_button!(
+                "Circle",
+                UiSignal::AddShape(ShapeInfo::Circle(None)),
+                ui,
+                signals
+            );
+        });
     });
 }
 

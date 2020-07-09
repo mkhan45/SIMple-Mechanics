@@ -11,7 +11,7 @@ use imgui::*;
 use imgui_gfx_renderer::*;
 
 use crate::gui::ui::*;
-use crate::Vector;
+use crate::{resources::ShapeInfo, Vector};
 
 use specs::prelude::*;
 
@@ -35,6 +35,7 @@ pub enum UiChoice {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum UiSignal {
+    AddShape(ShapeInfo),
 }
 
 #[derive(Debug, Clone)]
@@ -160,11 +161,7 @@ impl ImGuiWrapper {
         }
     }
 
-    pub fn render(
-        &mut self,
-        ctx: &mut Context,
-        hidpi_factor: f32,
-    ) {
+    pub fn render(&mut self, ctx: &mut Context, hidpi_factor: f32) {
         // Update mouse
         self.update_mouse();
 

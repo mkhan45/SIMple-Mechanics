@@ -1,8 +1,11 @@
-use crate::{Point, Vector};
 use crate::gui::imgui_wrapper::ImGuiWrapper;
+use crate::{Point, Vector};
 
 #[derive(Copy, Clone)]
 pub struct MousePos(pub Vector);
+
+#[derive(Copy, Clone)]
+pub struct MouseStartPos(pub Option<Vector>);
 
 impl Default for MousePos {
     fn default() -> Self {
@@ -13,13 +16,13 @@ impl Default for MousePos {
 #[derive(Copy, Clone, Default)]
 pub struct DT(pub std::time::Duration);
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum ShapeInfo {
-    Rectangle(Vector),
-    Circle(f32),
+    Rectangle(Option<Vector>),
+    Circle(Option<f32>),
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct CreateShapeData {
     pub shape: ShapeInfo,
     pub pos: Point,
@@ -28,8 +31,8 @@ pub struct CreateShapeData {
 
 #[derive(Copy, Clone)]
 pub struct CreationData {
-    creating: bool,
-    shape_data: Option<CreateShapeData>,
+    pub creating: bool,
+    pub shape_data: Option<CreateShapeData>,
 }
 
 impl Default for CreationData {

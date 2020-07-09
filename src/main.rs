@@ -33,8 +33,8 @@ mod components;
 use components::*;
 
 mod systems;
-use systems::SelectedMoveSys;
 use resources::HiDPIFactor;
+use systems::SelectedMoveSys;
 
 const SCREEN_X: f32 = 20.0;
 const SCREEN_Y: f32 = 20.0;
@@ -91,7 +91,7 @@ fn main() -> ggez::GameResult {
             )
             .exec()
             .unwrap();
-        });
+    });
     world.insert(std::sync::Arc::new(std::sync::Mutex::new(lua)));
 
     world.register::<PhysicsBody>();
@@ -110,9 +110,17 @@ fn main() -> ggez::GameResult {
     let hidpi_factor = event_loop.get_primary_monitor().get_hidpi_factor() as f32;
     let resolution = event_loop.get_primary_monitor().get_dimensions();
     world.insert(HiDPIFactor(hidpi_factor));
-    let imgui_wrapper = ImGuiWrapper::new(ctx, hidpi_factor, Vector::new(resolution.width as f32, resolution.height as f32));
+    let imgui_wrapper = ImGuiWrapper::new(
+        ctx,
+        hidpi_factor,
+        Vector::new(resolution.width as f32, resolution.height as f32),
+    );
 
-    let main_state = &mut MainState { world, dispatcher, imgui_wrapper };
+    let main_state = &mut MainState {
+        world,
+        dispatcher,
+        imgui_wrapper,
+    };
 
     main_state.add_shapes_from_lua_file("lua/init.lua");
 

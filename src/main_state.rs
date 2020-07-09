@@ -1,7 +1,7 @@
 use smallvec::SmallVec;
 
 use ggez::event::EventHandler;
-use ggez::graphics;
+use ggez::{graphics, input::mouse::MouseButton};
 
 use specs::prelude::*;
 
@@ -14,14 +14,14 @@ use crate::{SCREEN_X, SCREEN_Y};
 use crate::components::*;
 
 use crate::lua::LuaResExt;
-use crate::resources::{self, LuaRes, ShapeInfo};
+use crate::resources::{self, LuaRes, MousePos, ShapeInfo};
 use crate::RigidBodyDesc;
 
-use crate::gui::imgui_wrapper::ImGuiWrapper;
+use crate::gui::imgui_wrapper::{ImGuiWrapper, UiSignal};
 
 use ncollide2d as nc;
 use nphysics2d as np;
-use resources::HiDPIFactor;
+use resources::{CreateShapeData, CreationData, HiDPIFactor, MouseStartPos};
 
 pub struct MainState<'a, 'b> {
     pub world: specs::World,
@@ -57,8 +57,9 @@ impl<'a> BodyBuilder<'a> {
         mass: f32,
     ) -> Self {
         let shape = match shape_info {
-            ShapeInfo::Circle(r) => ShapeHandle::new(nc::shape::Ball::new(r)),
-            ShapeInfo::Rectangle(v) => ShapeHandle::new(nc::shape::Cuboid::new(v)),
+            ShapeInfo::Circle(Some(r)) => ShapeHandle::new(nc::shape::Ball::new(r)),
+            ShapeInfo::Rectangle(Some(v)) => ShapeHandle::new(nc::shape::Cuboid::new(v)),
+            _ => panic!("Invalid shape info without data"),
         };
 
         BodyBuilder {
@@ -167,11 +168,11 @@ impl<'a, 'b> MainState<'a, 'b> {
             "rectangle" | "rect" => {
                 let w = shape.get("w").unwrap();
                 let h = shape.get("h").unwrap();
-                ShapeInfo::Rectangle(Vector::new(w, h))
+                ShapeInfo::Rectangle(Some(Vector::new(w, h)))
             }
             "circle" => {
                 let rad = shape.get("r").unwrap();
-                ShapeInfo::Circle(rad)
+                ShapeInfo::Circle(Some(rad))
             }
             _ => panic!("invalid shape"),
         };
@@ -265,6 +266,67 @@ impl<'a, 'b> MainState<'a, 'b> {
             globals.set("shapes", shapes).unwrap();
         });
     }
+
+    pub fn process_gui_signals(&mut self) {
+        self.imgui_wrapper
+            .sent_signals
+            .clone()
+            .iter()
+            .for_each(|signal| match signal {
+                UiSignal::AddShape(shape_info) => {
+                    self.world.insert(CreationData {
+                        creating: true,
+                        shape_data: Some(CreateShapeData {
+                            shape: *shape_info,
+                            pos: Point::new(0.0, 0.0),
+                            centered: false,
+                        }),
+                    });
+                }
+            });
+        self.imgui_wrapper.sent_signals.clear();
+    }
+
+    pub fn draw_creation_gui(&self, mesh_builder: &mut ggez::graphics::MeshBuilder) {
+        let creation_data = self.world.fetch::<CreationData>();
+        if !creation_data.creating {
+            return;
+        }
+
+        let mouse_drag_vec = match self.world.fetch::<MouseStartPos>().0 {
+            Some(v) => v - self.world.fetch::<MousePos>().0,
+            None => Vector::new(0.0, 0.0),
+        };
+
+        match creation_data.shape_data {
+            Some(create_shape_data) => {
+                let pos = match self.world.fetch::<MouseStartPos>().0 {
+                    Some(p) => p,
+                    None => return,
+                };
+                match create_shape_data.shape {
+                    ShapeInfo::Rectangle(mut half_extents_opt) => {
+                        let v = mouse_drag_vec;
+                        half_extents_opt = Some(v);
+                        draw_rect(mesh_builder, [pos.x, pos.y], 0.0, v, graphics::WHITE, true);
+                    }
+                    ShapeInfo::Circle(mut rad_opt) => {
+                        let r = mouse_drag_vec.magnitude();
+                        rad_opt = Some(r);
+                        draw_circle(
+                            mesh_builder,
+                            [pos.x + r, pos.y + r],
+                            0.0,
+                            r,
+                            graphics::WHITE,
+                            true,
+                        );
+                    }
+                }
+            }
+            None => unreachable!(),
+        }
+    }
 }
 
 impl<'a, 'b> EventHandler for MainState<'a, 'b> {
@@ -272,9 +334,11 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         {
             self.world.insert(resources::DT(ggez::timer::delta(ctx)));
             self.world.insert(resources::FPS(ggez::timer::fps(ctx)));
+            self.world.maintain();
         }
 
         {
+            self.process_gui_signals();
             self.lua_update();
         }
 
@@ -305,6 +369,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         graphics::clear(ctx, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
 
         let mut mesh_builder = graphics::MeshBuilder::new();
+
+        self.draw_creation_gui(&mut mesh_builder);
 
         let entities = self.world.entities();
 
@@ -375,7 +441,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
         let mesh = mesh_builder.build(ctx)?;
 
-        self.imgui_wrapper.render(ctx, self.world.fetch::<HiDPIFactor>().0);
+        self.imgui_wrapper
+            .render(ctx, self.world.fetch::<HiDPIFactor>().0);
 
         graphics::draw(ctx, &mesh, graphics::DrawParam::new())?;
 
@@ -406,6 +473,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     }
 
     fn mouse_motion_event(&mut self, ctx: &mut ggez::Context, x: f32, y: f32, _dx: f32, _dy: f32) {
+        self.imgui_wrapper.update_mouse_pos(x, y);
+
         let screen_size = graphics::drawable_size(ctx);
         let screen_coords = graphics::screen_coordinates(ctx);
         let mouse_point = Vector::new(
@@ -418,17 +487,31 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
     fn mouse_button_down_event(
         &mut self,
-        _ctx: &mut ggez::Context,
-        btn: ggez::input::mouse::MouseButton,
-        _x: f32,
-        _y: f32,
+        ctx: &mut ggez::Context,
+        btn: MouseButton,
+        x: f32,
+        y: f32,
     ) {
-        if let ggez::input::mouse::MouseButton::Left = btn {
+        self.imgui_wrapper.update_mouse_down((
+            btn == MouseButton::Left,
+            btn == MouseButton::Right,
+            btn == MouseButton::Middle,
+        ));
+
+        let screen_size = graphics::drawable_size(ctx);
+        let screen_coords = graphics::screen_coordinates(ctx);
+        let mouse_point = Vector::new(
+            x / screen_size.0 * screen_coords.w,
+            y / screen_size.1 * screen_coords.h,
+        );
+        self.world
+            .insert(resources::MouseStartPos(Some(mouse_point)));
+
+        if let MouseButton::Left = btn {
             let geometrical_world = self.world.fetch::<GeometricalWorld>();
             let colliders = self.world.fetch::<ColliderSet>();
 
             let mouse_point = self.world.fetch::<resources::MousePos>().0;
-            println!("{} {}", mouse_point.x, mouse_point.y);
 
             let mut selected = self.world.write_storage::<Selected>();
 
@@ -450,14 +533,53 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     fn mouse_button_up_event(
         &mut self,
         _ctx: &mut ggez::Context,
-        btn: ggez::input::mouse::MouseButton,
+        btn: MouseButton,
         _x: f32,
         _y: f32,
     ) {
-        if let ggez::input::mouse::MouseButton::Left = btn {
+        self.imgui_wrapper.update_mouse_down((false, false, false));
+        if let MouseButton::Left = btn {
             let mut selected = self.world.write_storage::<Selected>();
             selected.clear();
+
+            let creation_data = self.world.fetch::<CreationData>();
+            if creation_data.creating {
+                let mouse_drag_vec = match self.world.fetch::<MouseStartPos>().0 {
+                    Some(v) => v - self.world.fetch::<MousePos>().0,
+                    None => Vector::new(1.0, 1.0),
+                };
+                match creation_data.shape_data {
+                    Some(_) => {
+                        let pos = match self.world.fetch::<MouseStartPos>().0 {
+                            Some(p) => p,
+                            None => return,
+                        };
+
+                        let v = mouse_drag_vec;
+                        BodyBuilder {
+                            translation: pos,
+                            rotation: 0.0,
+                            ..BodyBuilder::new(
+                                self.world.fetch_mut::<BodySet>().into(),
+                                self.world.fetch_mut::<ColliderSet>().into(),
+                                self.world.fetch::<LazyUpdate>().into(),
+                                self.world.entities(),
+                                ShapeInfo::Rectangle(Some(v.abs())),
+                                5.0,
+                            )
+                        }
+                        .create();
+                    }
+                    None => unreachable!(),
+                }
+            }
         }
+
+        self.world.insert(resources::MouseStartPos(None));
+        self.world.insert(CreationData {
+            creating: false,
+            shape_data: None,
+        });
     }
 }
 
