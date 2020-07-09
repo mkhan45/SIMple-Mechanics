@@ -61,7 +61,9 @@ fn main() -> ggez::GameResult {
     world.insert(force_gens);
 
     world.insert(resources::MousePos::default());
-    world.insert(resources::CreationData::default());
+    world.insert(resources::MouseStartPos(None));
+
+    world.insert(resources::CreationData(None));
 
     let lua = rlua::Lua::new();
     lua.context(|lua_ctx| {

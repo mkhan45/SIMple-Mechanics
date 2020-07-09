@@ -25,24 +25,10 @@ pub enum ShapeInfo {
 #[derive(Copy, Clone, Debug)]
 pub struct CreateShapeData {
     pub shape: ShapeInfo,
-    pub pos: Point,
     pub centered: bool,
 }
 
-#[derive(Copy, Clone)]
-pub struct CreationData {
-    pub creating: bool,
-    pub shape_data: Option<CreateShapeData>,
-}
-
-impl Default for CreationData {
-    fn default() -> Self {
-        CreationData {
-            creating: false,
-            shape_data: None,
-        }
-    }
-}
+pub struct CreationData(pub Option<CreateShapeData>);
 
 pub type LuaRes = std::sync::Arc<std::sync::Mutex<rlua::Lua>>;
 

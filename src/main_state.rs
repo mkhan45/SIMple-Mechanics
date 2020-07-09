@@ -277,14 +277,10 @@ impl<'a, 'b> MainState<'a, 'b> {
             .iter()
             .for_each(|signal| match signal {
                 UiSignal::AddShape(shape_info) => {
-                    self.world.insert(CreationData {
-                        creating: true,
-                        shape_data: Some(CreateShapeData {
-                            shape: *shape_info,
-                            pos: Point::new(0.0, 0.0),
-                            centered: false,
-                        }),
-                    });
+                    self.world.insert(CreationData(Some(CreateShapeData {
+                        shape: *shape_info,
+                        centered: true,
+                    })));
                 }
             });
         self.imgui_wrapper.sent_signals.clear();
@@ -292,42 +288,39 @@ impl<'a, 'b> MainState<'a, 'b> {
 
     pub fn draw_creation_gui(&self, mesh_builder: &mut ggez::graphics::MeshBuilder) {
         let creation_data = self.world.fetch::<CreationData>();
-        if !creation_data.creating {
-            return;
-        }
 
-        let mouse_drag_vec = match self.world.fetch::<MouseStartPos>().0 {
-            Some(v) => v - self.world.fetch::<MousePos>().0,
-            None => Vector::new(0.0, 0.0),
-        };
-
-        match creation_data.shape_data {
-            Some(create_shape_data) => {
-                let pos = match self.world.fetch::<MouseStartPos>().0 {
-                    Some(p) => p,
-                    None => return,
-                };
-                match create_shape_data.shape {
-                    ShapeInfo::Rectangle(mut half_extents_opt) => {
-                        let v = mouse_drag_vec;
-                        half_extents_opt = Some(v);
-                        draw_rect(mesh_builder, [pos.x, pos.y], 0.0, v, graphics::WHITE, true);
-                    }
-                    ShapeInfo::Circle(mut rad_opt) => {
-                        let r = mouse_drag_vec.magnitude();
-                        rad_opt = Some(r);
-                        draw_circle(
-                            mesh_builder,
-                            [pos.x + r, pos.y + r],
-                            0.0,
-                            r,
-                            graphics::WHITE,
-                            true,
-                        );
-                    }
+        if let (Some(create_shape_data), Some(start_pos)) =
+            (creation_data.0, self.world.fetch::<MouseStartPos>().0)
+        {
+            let mouse_pos = self.world.fetch::<MousePos>().0;
+            let mouse_drag_vec = mouse_pos - start_pos;
+            match create_shape_data {
+                CreateShapeData{ shape: ShapeInfo::Rectangle(_), centered: true } => {
+                    let v = mouse_drag_vec.abs();
+                    mesh_builder.rectangle(
+                        graphics::DrawMode::stroke(0.1),
+                        graphics::Rect::new(
+                            start_pos.x - v.x,
+                            start_pos.y - v.y,
+                            v.x * 2.0,
+                            v.y * 2.0,
+                        ),
+                        graphics::WHITE,
+                    );
                 }
+                CreateShapeData{ shape: ShapeInfo::Circle(_), centered: true } => {
+                    let r = mouse_drag_vec.magnitude();
+                    draw_circle(
+                        mesh_builder,
+                        [start_pos.x, start_pos.y],
+                        0.0,
+                        r,
+                        graphics::WHITE,
+                        true,
+                    );
+                }
+                _ => unimplemented!(),
             }
-            None => unreachable!(),
         }
     }
 }
@@ -369,7 +362,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         use graphics::Color;
 
-        graphics::clear(ctx, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
+        graphics::clear(ctx, graphics::BLACK);
 
         let mut mesh_builder = graphics::MeshBuilder::new();
 
@@ -546,40 +539,51 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             selected.clear();
 
             let creation_data = self.world.fetch::<CreationData>();
-            if creation_data.creating {
-                let mouse_drag_vec = match self.world.fetch::<MouseStartPos>().0 {
-                    Some(v) => v - self.world.fetch::<MousePos>().0,
-                    None => Vector::new(1.0, 1.0),
-                };
-                match creation_data.shape_data {
-                    Some(_) => {
-                        let pos = match self.world.fetch::<MouseStartPos>().0 {
-                            Some(p) => p,
-                            None => return,
-                        };
-
-                        let v = mouse_drag_vec;
-                        BodyBuilder {
-                            translation: pos,
-                            rotation: 0.0,
-                            ..BodyBuilder::from_world(
-                                &self.world,
-                                ShapeInfo::Rectangle(Some(v.abs())),
-                                5.0,
-                            )
+            match creation_data.0 {
+                Some(data) => {
+                    let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
+                    let current_pos = self.world.fetch::<MousePos>().0;
+                    let mouse_drag_vec = start_pos - current_pos;
+                    match data {
+                        CreateShapeData {
+                            shape: ShapeInfo::Rectangle(_),
+                            centered: true,
+                        } => {
+                            BodyBuilder {
+                                translation: start_pos,
+                                rotation: 0.0,
+                                ..BodyBuilder::from_world(
+                                    &self.world,
+                                    ShapeInfo::Rectangle(Some(mouse_drag_vec.abs())),
+                                    5.0,
+                                )
+                            }
+                            .create();
                         }
-                        .create();
+                        CreateShapeData {
+                            shape: ShapeInfo::Circle(_),
+                            centered: true,
+                        } => {
+                            BodyBuilder {
+                                translation: start_pos,
+                                rotation: 0.0,
+                                ..BodyBuilder::from_world(
+                                    &self.world,
+                                    ShapeInfo::Circle(Some(mouse_drag_vec.norm())),
+                                    5.0,
+                                )
+                            }
+                            .create();
+                            }
+                        _ => unimplemented!(),
                     }
-                    None => unreachable!(),
                 }
+                None => {}
             }
         }
 
         self.world.insert(resources::MouseStartPos(None));
-        self.world.insert(CreationData {
-            creating: false,
-            shape_data: None,
-        });
+        self.world.insert(CreationData(None));
     }
 }
 
@@ -602,12 +606,12 @@ fn draw_circle(
     mesh_builder.circle(
         drawmode,
         [
-            pos[0] + rad * rot.cos() * 0.75,
-            pos[1] + rad * rot.sin() * 0.75,
+        pos[0] + rad * rot.cos() * 0.75,
+        pos[1] + rad * rot.sin() * 0.75,
         ],
         rad * 0.15,
         0.01,
-        graphics::Color::new(0.0, 0.0, 0.0, 1.0),
+        graphics::BLACK,
     );
 }
 
@@ -641,18 +645,18 @@ fn draw_rect(
             center_pos[1] + half_extents.y,
         ),
     ]
-    .iter()
-    .map(|point| {
-        // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
-        // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
-        [
-            rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
-                + center_pos[0],
-            rot_sin * (point.x - center_pos[0])
-                + rot_cos * (point.y - center_pos[1])
-                + center_pos[1],
-        ]
-    })
+        .iter()
+        .map(|point| {
+            // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
+            // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
+            [
+                rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
+                    + center_pos[0],
+                    rot_sin * (point.x - center_pos[0])
+                        + rot_cos * (point.y - center_pos[1])
+                        + center_pos[1],
+            ]
+        })
     .collect::<SmallVec<[[f32; 2]; 4]>>();
 
     let points = _points.as_slice();
@@ -666,4 +670,4 @@ fn draw_rect(
     mesh_builder
         .polygon(drawmode, points, color)
         .expect("error drawing rotated rect");
-}
+    }
