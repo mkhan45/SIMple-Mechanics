@@ -48,6 +48,16 @@ pub struct BodyBuilder<'a> {
 }
 
 impl<'a> BodyBuilder<'a> {
+    pub fn from_world(world: &'a World, shape_info: ShapeInfo, mass: f32) -> Self {
+        BodyBuilder::new(
+            world.fetch_mut::<BodySet>().into(),
+            world.fetch_mut::<ColliderSet>().into(),
+            world.fetch::<LazyUpdate>().into(),
+            world.entities(),
+            shape_info,
+            mass,
+        )
+    }
     pub fn new(
         body_set: Write<'a, BodySet>,
         collider_set: Write<'a, ColliderSet>,
@@ -187,14 +197,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             friction,
             color,
             name: name.ok(),
-            ..BodyBuilder::new(
-                self.world.fetch_mut::<BodySet>().into(),
-                self.world.fetch_mut::<ColliderSet>().into(),
-                self.world.fetch::<LazyUpdate>().into(),
-                self.world.entities(),
-                shape_info,
-                mass,
-            )
+            ..BodyBuilder::from_world(&self.world, shape_info, mass)
         }
         .create();
     }
@@ -559,11 +562,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         BodyBuilder {
                             translation: pos,
                             rotation: 0.0,
-                            ..BodyBuilder::new(
-                                self.world.fetch_mut::<BodySet>().into(),
-                                self.world.fetch_mut::<ColliderSet>().into(),
-                                self.world.fetch::<LazyUpdate>().into(),
-                                self.world.entities(),
+                            ..BodyBuilder::from_world(
+                                &self.world,
                                 ShapeInfo::Rectangle(Some(v.abs())),
                                 5.0,
                             )
