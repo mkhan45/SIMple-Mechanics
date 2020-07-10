@@ -21,6 +21,10 @@ pub struct Collider {
 #[storage(NullStorage)]
 pub struct Selected;
 
+#[derive(Component, Default)]
+#[storage(NullStorage)]
+pub struct InfoDisplayed;
+
 #[derive(Debug, Copy, Clone, Component)]
 #[storage(VecStorage)]
 pub struct Color(pub ggez::graphics::Color);

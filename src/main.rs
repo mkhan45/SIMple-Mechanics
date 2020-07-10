@@ -41,7 +41,10 @@ const SCREEN_Y: f32 = 20.0;
 
 fn main() -> ggez::GameResult {
     // create a mutable reference to a `Context` and `EventsLoop`
-    let (ctx, event_loop) = &mut ggez::ContextBuilder::new("Pong", "Fish").build().unwrap();
+    let (ctx, event_loop) = &mut ggez::ContextBuilder::new("Physics", "Mikail Khan")
+        .window_setup(ggez::conf::WindowSetup::default().title("Physics"))
+        .build()
+        .unwrap();
     ggez::graphics::set_mode(ctx, ggez::conf::WindowMode::default().resizable(true))?;
 
     let mut world = specs::World::new();
@@ -102,6 +105,7 @@ fn main() -> ggez::GameResult {
     world.register::<PhysicsBody>();
     world.register::<Collider>();
     world.register::<Selected>();
+    world.register::<InfoDisplayed>();
     world.register::<Color>();
     world.register::<Name>();
 

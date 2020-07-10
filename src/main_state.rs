@@ -20,10 +20,12 @@ use crate::{SCREEN_X, SCREEN_Y};
 use crate::components::*;
 
 use crate::lua::LuaResExt;
-use crate::resources::{self, CreateMass, LuaRes, MousePos, ShapeInfo, CreateFriction, CreateElasticity};
+use crate::resources::{
+    self, CreateElasticity, CreateFriction, CreateMass, LuaRes, MousePos, ShapeInfo,
+};
 use crate::RigidBodyDesc;
 
-use crate::gui::imgui_wrapper::{ImGuiWrapper, UiSignal};
+use crate::gui::imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal};
 
 use graphics::DrawMode;
 use ncollide2d as nc;
@@ -371,6 +373,16 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             self.dispatcher.dispatch(&self.world);
         }
 
+        {
+            let info_displayed = self.world.read_storage::<InfoDisplayed>();
+            let entities = self.world.entities();
+            if let Some((_, entity)) = (&info_displayed, &entities).join().next() {
+                self.imgui_wrapper
+                    .shown_menus
+                    .insert(UiChoice::SideMenu(Some(entity)));
+            }
+        }
+
         let geometrical_world = &mut self.world.fetch_mut::<GeometricalWorld>();
         let body_set = &mut *self.world.fetch_mut::<BodySet>();
         let collider_set = &mut *self.world.fetch_mut::<ColliderSet>();
@@ -537,25 +549,10 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
         match btn {
             MouseButton::Left => {
-                let geometrical_world = self.world.fetch::<GeometricalWorld>();
-                let colliders = self.world.fetch::<ColliderSet>();
-
-                let mouse_point = self.world.fetch::<resources::MousePos>().0;
-
                 let mut selected = self.world.write_storage::<Selected>();
-
-                geometrical_world
-                    .interferences_with_point(
-                        &*colliders,
-                        &Point::new(mouse_point.x, mouse_point.y),
-                        &nc::pipeline::CollisionGroups::new(),
-                    )
-                    .for_each(|obj| {
-                        let specs_hand = obj.1.user_data().unwrap();
-                        let ent = specs_hand.downcast_ref::<Entity>().unwrap();
-
-                        selected.insert(*ent, Selected::default()).unwrap();
-                    });
+                if let Some(entity) = get_hovered_shape(&self.world) {
+                    selected.insert(entity, Selected::default()).unwrap();
+                }
 
                 {
                     let mut creation_data = self.world.fetch_mut::<CreationData>();
@@ -569,9 +566,16 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 }
             }
             MouseButton::Right => {
+                let mut info_displayed = self.world.write_storage::<InfoDisplayed>();
+                if let Some(entity) = get_hovered_shape(&self.world) {
+                    info_displayed
+                        .insert(entity, InfoDisplayed::default())
+                        .unwrap();
+                }
+
                 let creation_data = self.world.fetch::<CreationData>();
                 if let Some(CreateShapeData {
-                    shape: ShapeInfo::Polygon(Some(points)),
+                    shape: ShapeInfo::Polygon(Some(_points)),
                     centered: _,
                 }) = &creation_data.0
                 {
@@ -580,7 +584,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                     // }.create();
                 }
             }
-            _ => {},
+            _ => {}
         }
     }
 
@@ -698,8 +702,8 @@ fn draw_circle(
     mesh_builder.circle(
         drawmode,
         [
-        pos[0] + rad * rot.cos() * 0.75,
-        pos[1] + rad * rot.sin() * 0.75,
+            pos[0] + rad * rot.cos() * 0.75,
+            pos[1] + rad * rot.sin() * 0.75,
         ],
         rad * 0.15,
         0.01,
@@ -737,18 +741,18 @@ fn draw_rect(
             center_pos[1] + half_extents.y,
         ),
     ]
-        .iter()
-        .map(|point| {
-            // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
-            // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
-            [
-                rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
-                    + center_pos[0],
-                    rot_sin * (point.x - center_pos[0])
-                        + rot_cos * (point.y - center_pos[1])
-                        + center_pos[1],
-            ]
-        })
+    .iter()
+    .map(|point| {
+        // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
+        // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
+        [
+            rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
+                + center_pos[0],
+            rot_sin * (point.x - center_pos[0])
+                + rot_cos * (point.y - center_pos[1])
+                + center_pos[1],
+        ]
+    })
     .collect::<SmallVec<[[f32; 2]; 4]>>();
 
     let points = _points.as_slice();
@@ -762,4 +766,22 @@ fn draw_rect(
     mesh_builder
         .polygon(drawmode, points, color)
         .expect("error drawing rotated rect");
-    }
+}
+
+fn get_hovered_shape(world: &World) -> Option<Entity> {
+    let geometrical_world = world.fetch::<GeometricalWorld>();
+    let colliders = world.fetch::<ColliderSet>();
+    let mouse_point = world.fetch::<resources::MousePos>().0;
+
+    geometrical_world
+        .interferences_with_point(
+            &*colliders,
+            &Point::new(mouse_point.x, mouse_point.y),
+            &nc::pipeline::CollisionGroups::new(),
+        )
+        .map(|obj| {
+            let specs_hand = obj.1.user_data().unwrap();
+            *specs_hand.downcast_ref::<Entity>().unwrap()
+        })
+        .next()
+}

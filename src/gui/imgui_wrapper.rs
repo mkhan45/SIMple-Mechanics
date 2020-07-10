@@ -148,6 +148,7 @@ impl ImGuiWrapper {
                 #[allow(unreachable_patterns)]
                 match menu {
                     UiChoice::DefaultUI => make_default_ui(&mut ui),
+                    UiChoice::SideMenu(Some(entity)) => make_sidemenu(&mut ui, world, *entity),
                     _ => unimplemented!(),
                 }
             }

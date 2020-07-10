@@ -4,8 +4,9 @@ use std::path::Path;
 
 use crate::gui::imgui_wrapper::*;
 use crate::{
-    resources::{CreateMass, ShapeInfo, CreateElasticity, CreateFriction},
-    Vector,
+    components::PhysicsBody,
+    resources::{CreateElasticity, CreateFriction, CreateMass, ShapeInfo},
+    BodySet, RigidBody, Vector,
 };
 
 use specs::prelude::*;
@@ -33,6 +34,30 @@ macro_rules! int_slider {
 pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mut World) {
     ui.main_menu_bar(|| {
         ui.menu(im_str!("Create Shape"), true, || {
+            ui.drag_float(im_str!("Mass"), &mut world.fetch_mut::<CreateMass>().0)
+                .min(0.001)
+                .max(250.0)
+                .speed(0.25)
+                .build();
+
+            ui.drag_float(
+                im_str!("Elasticity"),
+                &mut world.fetch_mut::<CreateElasticity>().0,
+            )
+            .min(0.00)
+            .max(1.0)
+            .speed(0.1)
+            .build();
+
+            ui.drag_float(
+                im_str!("Friction"),
+                &mut world.fetch_mut::<CreateFriction>().0,
+            )
+            .min(0.00)
+            .max(1.0)
+            .speed(0.1)
+            .build();
+
             signal_button!(
                 "Rectangle",
                 UiSignal::AddShape(ShapeInfo::Rectangle(None)),
@@ -52,28 +77,24 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
                 signals
             );
         });
-
-        ui.menu(im_str!("Shape Info"), true, || {
-            ui.drag_float(im_str!("Mass"), &mut world.fetch_mut::<CreateMass>().0)
-                .min(0.001)
-                .max(250.0)
-                .speed(0.25)
-                .build();
-
-            ui.drag_float(im_str!("Elasticity"), &mut world.fetch_mut::<CreateElasticity>().0)
-                .min(0.00)
-                .max(1.0)
-                .speed(0.1)
-                .build();
-
-            ui.drag_float(im_str!("Friction"), &mut world.fetch_mut::<CreateFriction>().0)
-                .min(0.00)
-                .max(1.0)
-                .speed(0.1)
-                .build();
-            
-        });
     });
+}
+
+pub fn make_sidemenu(ui: &mut imgui::Ui, world: &World, entity: Entity) {
+    let body_set = world.fetch::<BodySet>();
+    let physics_body = {
+        let physics_bodies = world.read_storage::<PhysicsBody>();
+        let physics_body_handle = physics_bodies.get(entity).unwrap();
+        body_set
+            .get(physics_body_handle.body_handle)
+            .unwrap()
+            .downcast_ref::<RigidBody>()
+            .unwrap()
+    };
+
+    let pos = physics_body.position();
+    let vel = physics_body.velocity();
+    dbg!(pos, vel);
 }
 
 pub fn make_default_ui(ui: &mut imgui::Ui) {
