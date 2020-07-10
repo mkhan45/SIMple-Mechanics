@@ -20,15 +20,15 @@ use crate::{SCREEN_X, SCREEN_Y};
 use crate::components::*;
 
 use crate::lua::LuaResExt;
-use crate::resources::{self, LuaRes, MousePos, ShapeInfo};
+use crate::resources::{self, CreateMass, LuaRes, MousePos, ShapeInfo};
 use crate::RigidBodyDesc;
 
 use crate::gui::imgui_wrapper::{ImGuiWrapper, UiSignal};
 
+use graphics::DrawMode;
 use ncollide2d as nc;
 use nphysics2d as np;
 use resources::{CreateShapeData, CreationData, HiDPIFactor, MouseStartPos};
-use graphics::DrawMode;
 
 pub struct MainState<'a, 'b> {
     pub world: specs::World,
@@ -286,7 +286,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             .for_each(|signal| match signal {
                 UiSignal::AddShape(shape_info) => {
                     self.world.insert(CreationData(Some(CreateShapeData {
-                        shape: *shape_info,
+                        shape: shape_info.clone(),
                         centered: true,
                     })));
                 }
@@ -298,7 +298,7 @@ impl<'a, 'b> MainState<'a, 'b> {
         let creation_data = self.world.fetch::<CreationData>();
 
         if let (Some(create_shape_data), Some(start_pos)) =
-            (creation_data.0, self.world.fetch::<MouseStartPos>().0)
+            (&creation_data.0, self.world.fetch::<MouseStartPos>().0)
         {
             let mouse_pos = self.world.fetch::<MousePos>().0;
             let mouse_drag_vec = mouse_pos - start_pos;
@@ -324,10 +324,32 @@ impl<'a, 'b> MainState<'a, 'b> {
                     centered: true,
                 } => {
                     let r = mouse_drag_vec.magnitude();
-                    mesh_builder.circle(DrawMode::stroke(0.1), [start_pos.x, start_pos.y], r, 0.01, graphics::WHITE);
+                    mesh_builder.circle(
+                        DrawMode::stroke(0.1),
+                        [start_pos.x, start_pos.y],
+                        r,
+                        0.01,
+                        graphics::WHITE,
+                    );
                 }
-                _ => unimplemented!(),
+                _ => {}
             }
+        }
+
+        if let Some(CreateShapeData {
+            shape: ShapeInfo::Polygon(Some(points)),
+            centered: _,
+        }) = &creation_data.0
+        {
+            let _ = mesh_builder.line(
+                points
+                    .iter()
+                    .map(|p| [p.x, p.y])
+                    .collect::<Vec<[f32; 2]>>()
+                    .as_slice(),
+                0.1,
+                graphics::WHITE,
+            );
         }
     }
 }
@@ -370,6 +392,12 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         use graphics::Color;
 
         graphics::clear(ctx, graphics::BLACK);
+
+        {
+            let hidpi_factor = self.world.fetch::<HiDPIFactor>().0;
+            self.imgui_wrapper
+                .render(ctx, hidpi_factor, &mut self.world);
+        }
 
         let mut mesh_builder = graphics::MeshBuilder::new();
 
@@ -444,10 +472,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
         let mesh = mesh_builder.build(ctx)?;
 
-        self.imgui_wrapper
-            .render(ctx, self.world.fetch::<HiDPIFactor>().0);
-
-        graphics::draw(ctx, &mesh, graphics::DrawParam::new())?;
+        let _ = graphics::draw(ctx, &mesh, graphics::DrawParam::new());
 
         graphics::present(ctx)?;
 
@@ -510,26 +535,52 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         self.world
             .insert(resources::MouseStartPos(Some(mouse_point)));
 
-        if let MouseButton::Left = btn {
-            let geometrical_world = self.world.fetch::<GeometricalWorld>();
-            let colliders = self.world.fetch::<ColliderSet>();
+        match btn {
+            MouseButton::Left => {
+                let geometrical_world = self.world.fetch::<GeometricalWorld>();
+                let colliders = self.world.fetch::<ColliderSet>();
 
-            let mouse_point = self.world.fetch::<resources::MousePos>().0;
+                let mouse_point = self.world.fetch::<resources::MousePos>().0;
 
-            let mut selected = self.world.write_storage::<Selected>();
+                let mut selected = self.world.write_storage::<Selected>();
 
-            geometrical_world
-                .interferences_with_point(
-                    &*colliders,
-                    &Point::new(mouse_point.x, mouse_point.y),
-                    &nc::pipeline::CollisionGroups::new(),
-                )
-                .for_each(|obj| {
-                    let specs_hand = obj.1.user_data().unwrap();
-                    let ent = specs_hand.downcast_ref::<Entity>().unwrap();
+                geometrical_world
+                    .interferences_with_point(
+                        &*colliders,
+                        &Point::new(mouse_point.x, mouse_point.y),
+                        &nc::pipeline::CollisionGroups::new(),
+                    )
+                    .for_each(|obj| {
+                        let specs_hand = obj.1.user_data().unwrap();
+                        let ent = specs_hand.downcast_ref::<Entity>().unwrap();
 
-                    selected.insert(*ent, Selected::default()).unwrap();
-                });
+                        selected.insert(*ent, Selected::default()).unwrap();
+                    });
+
+                {
+                    let mut creation_data = self.world.fetch_mut::<CreationData>();
+                    if let Some(CreateShapeData {
+                        shape: ShapeInfo::Polygon(Some(points)),
+                        centered: _,
+                    }) = creation_data.0.as_mut()
+                    {
+                        points.push(mouse_point.into());
+                    }
+                }
+            }
+            MouseButton::Right => {
+                let creation_data = self.world.fetch::<CreationData>();
+                if let Some(CreateShapeData {
+                    shape: ShapeInfo::Polygon(Some(points)),
+                    centered: _,
+                }) = &creation_data.0
+                {
+                    // BodyBuilder {
+
+                    // }.create();
+                }
+            }
+            _ => {},
         }
     }
 
@@ -542,11 +593,13 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     ) {
         self.imgui_wrapper.update_mouse_down((false, false, false));
         if let MouseButton::Left = btn {
-            let mut selected = self.world.write_storage::<Selected>();
-            selected.clear();
+            {
+                let mut selected = self.world.write_storage::<Selected>();
+                selected.clear();
+            }
 
             let creation_data = self.world.fetch::<CreationData>();
-            if let Some(data) = creation_data.0 {
+            if let Some(data) = &creation_data.0 {
                 let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
                 let current_pos = self.world.fetch::<MousePos>().0;
                 let mouse_drag_vec = start_pos - current_pos;
@@ -561,11 +614,13 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                             ..BodyBuilder::from_world(
                                 &self.world,
                                 ShapeInfo::Rectangle(Some(mouse_drag_vec.abs())),
-                                5.0,
+                                self.world.fetch::<CreateMass>().0,
                             )
                         }
                         .create();
-                        }
+                        std::mem::drop(creation_data);
+                        self.world.insert(CreationData(None));
+                    }
                     CreateShapeData {
                         shape: ShapeInfo::Circle(_),
                         centered: true,
@@ -575,19 +630,24 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                             rotation: 0.0,
                             ..BodyBuilder::from_world(
                                 &self.world,
-                                ShapeInfo::Circle(Some(mouse_drag_vec.norm())),
-                                5.0,
+                                ShapeInfo::Circle(Some(mouse_drag_vec.norm().max(0.001))),
+                                self.world.fetch::<CreateMass>().0,
                             )
                         }
                         .create();
-                        }
+                        std::mem::drop(creation_data);
+                        self.world.insert(CreationData(None));
+                    }
+                    CreateShapeData {
+                        shape: ShapeInfo::Polygon(_),
+                        centered: _,
+                    } => {}
                     _ => unimplemented!(),
                 }
             }
         }
 
         self.world.insert(resources::MouseStartPos(None));
-        self.world.insert(CreationData(None));
     }
 
     fn key_down_event(

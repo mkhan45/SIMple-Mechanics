@@ -16,13 +16,14 @@ impl Default for MousePos {
 #[derive(Copy, Clone, Default)]
 pub struct DT(pub std::time::Duration);
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum ShapeInfo {
     Rectangle(Option<Vector>),
     Circle(Option<f32>),
+    Polygon(Option<Vec<Point>>),
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct CreateShapeData {
     pub shape: ShapeInfo,
     pub centered: bool,
@@ -37,3 +38,6 @@ pub struct FPS(pub f64);
 
 #[derive(Copy, Clone, Default)]
 pub struct HiDPIFactor(pub f32);
+
+#[derive(Copy, Clone, Default)]
+pub struct CreateMass(pub f32);

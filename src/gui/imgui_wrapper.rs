@@ -38,39 +38,6 @@ pub enum UiSignal {
     AddShape(ShapeInfo),
 }
 
-#[derive(Debug, Clone)]
-pub struct RenderData {
-    pub create_mass: f32,
-    pub create_rad: f32,
-    pub mass: f32,
-    pub rad: f32,
-    pub dt: f32,
-    pub num_iterations: usize,
-    pub preview_iterations: usize,
-    pub entity_selected: bool,
-    pub save_filename: ImString,
-    pub load_filename: ImString,
-    pub trail_len: usize,
-}
-
-impl RenderData {
-    pub fn new() -> Self {
-        RenderData {
-            create_mass: 0.01,
-            create_rad: 1.0,
-            mass: 0.01,
-            rad: 1.0,
-            dt: 1.0,
-            num_iterations: 1,
-            preview_iterations: 25,
-            entity_selected: false,
-            save_filename: ImString::new("save.lua"),
-            load_filename: ImString::new("load.lua"),
-            trail_len: 35,
-        }
-    }
-}
-
 pub struct ImGuiWrapper {
     pub imgui: imgui::Context,
     pub renderer: Renderer<gfx_core::format::Rgba8, gfx_device_gl::Resources>,
@@ -81,7 +48,6 @@ pub struct ImGuiWrapper {
     pub resolution: Vector,
     pub sidemenu: bool,
     pub graph: bool,
-    pub render_data: RenderData,
 }
 
 impl ImGuiWrapper {
@@ -157,11 +123,10 @@ impl ImGuiWrapper {
             resolution,
             sidemenu: false,
             graph: false,
-            render_data: RenderData::new(),
         }
     }
 
-    pub fn render(&mut self, ctx: &mut Context, hidpi_factor: f32) {
+    pub fn render(&mut self, ctx: &mut Context, hidpi_factor: f32, world: &mut World) {
         // Update mouse
         self.update_mouse();
 
@@ -186,7 +151,7 @@ impl ImGuiWrapper {
                     _ => unimplemented!(),
                 }
             }
-            make_menu_bar(&mut ui, &mut self.sent_signals, &mut self.render_data);
+            make_menu_bar(&mut ui, &mut self.sent_signals, world);
         }
 
         // Render

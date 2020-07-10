@@ -64,6 +64,7 @@ fn main() -> ggez::GameResult {
     world.insert(resources::MouseStartPos(None));
 
     world.insert(resources::CreationData(None));
+    world.insert(resources::CreateMass(5.0));
 
     let lua = rlua::Lua::new();
     lua.context(|lua_ctx| {

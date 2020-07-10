@@ -3,7 +3,12 @@ use std::fs;
 use std::path::Path;
 
 use crate::gui::imgui_wrapper::*;
-use crate::{resources::ShapeInfo, Vector};
+use crate::{
+    resources::{CreateMass, ShapeInfo},
+    Vector,
+};
+
+use specs::prelude::*;
 
 macro_rules! signal_button {
     ( $label:expr, $signal:expr, $ui:expr, $signals:expr) => {
@@ -25,11 +30,7 @@ macro_rules! int_slider {
     };
 }
 
-pub fn make_menu_bar(
-    ui: &mut imgui::Ui,
-    signals: &mut Vec<UiSignal>,
-    render_data: &mut RenderData,
-) {
+pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mut World) {
     ui.main_menu_bar(|| {
         ui.menu(im_str!("Create Shape"), true, || {
             signal_button!(
@@ -44,7 +45,19 @@ pub fn make_menu_bar(
                 ui,
                 signals
             );
+            signal_button!(
+                "Polygon",
+                UiSignal::AddShape(ShapeInfo::Polygon(Some(Vec::with_capacity(3)))),
+                ui,
+                signals
+            );
         });
+
+        ui.drag_float(im_str!("Mass"), &mut world.fetch_mut::<CreateMass>().0)
+            .min(0.001)
+            .max(250.0)
+            .speed(0.25)
+            .build();
     });
 }
 
