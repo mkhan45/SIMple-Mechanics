@@ -4,7 +4,7 @@ use std::path::Path;
 
 use crate::gui::imgui_wrapper::*;
 use crate::{
-    resources::{CreateMass, ShapeInfo},
+    resources::{CreateMass, ShapeInfo, CreateElasticity, CreateFriction},
     Vector,
 };
 
@@ -53,11 +53,26 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
             );
         });
 
-        ui.drag_float(im_str!("Mass"), &mut world.fetch_mut::<CreateMass>().0)
-            .min(0.001)
-            .max(250.0)
-            .speed(0.25)
-            .build();
+        ui.menu(im_str!("Shape Info"), true, || {
+            ui.drag_float(im_str!("Mass"), &mut world.fetch_mut::<CreateMass>().0)
+                .min(0.001)
+                .max(250.0)
+                .speed(0.25)
+                .build();
+
+            ui.drag_float(im_str!("Elasticity"), &mut world.fetch_mut::<CreateElasticity>().0)
+                .min(0.00)
+                .max(1.0)
+                .speed(0.1)
+                .build();
+
+            ui.drag_float(im_str!("Friction"), &mut world.fetch_mut::<CreateFriction>().0)
+                .min(0.00)
+                .max(1.0)
+                .speed(0.1)
+                .build();
+            
+        });
     });
 }
 

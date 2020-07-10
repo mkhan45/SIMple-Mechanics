@@ -20,7 +20,7 @@ use crate::{SCREEN_X, SCREEN_Y};
 use crate::components::*;
 
 use crate::lua::LuaResExt;
-use crate::resources::{self, CreateMass, LuaRes, MousePos, ShapeInfo};
+use crate::resources::{self, CreateMass, LuaRes, MousePos, ShapeInfo, CreateFriction, CreateElasticity};
 use crate::RigidBodyDesc;
 
 use crate::gui::imgui_wrapper::{ImGuiWrapper, UiSignal};
@@ -611,6 +611,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         BodyBuilder {
                             translation: start_pos,
                             rotation: 0.0,
+                            restitution: self.world.fetch::<CreateElasticity>().0,
+                            friction: self.world.fetch::<CreateFriction>().0,
                             ..BodyBuilder::from_world(
                                 &self.world,
                                 ShapeInfo::Rectangle(Some(mouse_drag_vec.abs())),
@@ -628,6 +630,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         BodyBuilder {
                             translation: start_pos,
                             rotation: 0.0,
+                            restitution: self.world.fetch::<CreateElasticity>().0,
+                            friction: self.world.fetch::<CreateFriction>().0,
                             ..BodyBuilder::from_world(
                                 &self.world,
                                 ShapeInfo::Circle(Some(mouse_drag_vec.norm().max(0.001))),

@@ -41,3 +41,9 @@ pub struct HiDPIFactor(pub f32);
 
 #[derive(Copy, Clone, Default)]
 pub struct CreateMass(pub f32);
+
+#[derive(Copy, Clone, Default)]
+pub struct CreateElasticity(pub f32);
+
+#[derive(Copy, Clone, Default)]
+pub struct CreateFriction(pub f32);
