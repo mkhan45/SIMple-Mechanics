@@ -1,4 +1,3 @@
-use crate::gui::imgui_wrapper::ImGuiWrapper;
 use crate::{Point, Vector};
 
 #[derive(Copy, Clone)]

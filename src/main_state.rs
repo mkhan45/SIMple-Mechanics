@@ -294,12 +294,7 @@ impl<'a, 'b> MainState<'a, 'b> {
                 }
                 UiSignal::DeleteShape(entity) => {
                     self.world.delete_entity(*entity).unwrap();
-                    self.imgui_wrapper.shown_menus.retain(|menu|{
-                        match menu {
-                            UiChoice::SideMenu(Some(menu_entity)) => menu_entity != entity,
-                            _ => true,
-                        }
-                    });
+                    self.imgui_wrapper.remove_sidemenu(entity);
                 }
             });
         self.imgui_wrapper.sent_signals.clear();
@@ -584,13 +579,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                     Some(entity) => {
                         if info_displayed.get(entity).is_some() {
                             info_displayed.remove(entity).unwrap();
-
-                            self.imgui_wrapper.shown_menus.retain(|menu| {
-                                match menu {
-                                    UiChoice::SideMenu(Some(menu_entity)) => menu_entity != &entity,
-                                    _ => true,
-                                }
-                            });
+                            self.imgui_wrapper.remove_sidemenu(&entity);
                         } else {
                             info_displayed
                                 .insert(entity, InfoDisplayed::default())
@@ -696,7 +685,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         &mut self,
         _ctx: &mut ggez::Context,
         btn: KeyCode,
-        _keymods: KeyMods,
+        keymods: KeyMods,
         _repeat: bool,
     ) {
         match btn {
@@ -714,6 +703,16 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             }
             _ => {}
         }
+
+        self.imgui_wrapper.update_key_down(btn, keymods);
+    }
+
+    fn key_up_event(&mut self, _ctx: &mut ggez::Context, btn: KeyCode, keymods: KeyMods) {
+        self.imgui_wrapper.update_key_up(btn, keymods);
+    }
+
+    fn text_input_event(&mut self, _ctx: &mut ggez::Context, val: char) {
+        self.imgui_wrapper.update_text(val);
     }
 }
 

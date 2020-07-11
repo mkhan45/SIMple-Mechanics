@@ -10,7 +10,6 @@ mod lua;
 mod gui;
 use gui::imgui_wrapper::ImGuiWrapper;
 
-use nalgebra as na;
 use ncollide2d as nc;
 use nphysics2d as np;
 
