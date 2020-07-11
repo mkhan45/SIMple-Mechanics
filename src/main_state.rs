@@ -30,7 +30,7 @@ use crate::gui::imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal};
 use graphics::DrawMode;
 use ncollide2d as nc;
 use nphysics2d as np;
-use resources::{CreateShapeData, CreationData, HiDPIFactor, MouseStartPos};
+use resources::{CreateShapeCentered, CreationData, HiDPIFactor, MouseStartPos};
 
 pub struct MainState<'a, 'b> {
     pub world: specs::World,
@@ -287,10 +287,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             .iter()
             .for_each(|signal| match signal {
                 UiSignal::AddShape(shape_info) => {
-                    self.world.insert(CreationData(Some(CreateShapeData {
-                        shape: shape_info.clone(),
-                        centered: true,
-                    })));
+                    self.world.insert(CreationData(Some(shape_info.clone())))
                 }
                 UiSignal::DeleteShape(entity) => {
                     self.world.delete_entity(*entity).unwrap();
@@ -301,18 +298,17 @@ impl<'a, 'b> MainState<'a, 'b> {
     }
 
     pub fn draw_creation_gui(&self, mesh_builder: &mut ggez::graphics::MeshBuilder) {
-        let creation_data = self.world.fetch::<CreationData>();
+        let create_shape_opt = self.world.fetch::<CreationData>();
+        let create_shape_data = create_shape_opt.0.as_ref();
+        let create_shape_centered = self.world.fetch::<CreateShapeCentered>().0;
 
         if let (Some(create_shape_data), Some(start_pos)) =
-            (&creation_data.0, self.world.fetch::<MouseStartPos>().0)
+            (&create_shape_data, self.world.fetch::<MouseStartPos>().0)
         {
             let mouse_pos = self.world.fetch::<MousePos>().0;
             let mouse_drag_vec = mouse_pos - start_pos;
-            match create_shape_data {
-                CreateShapeData {
-                    shape: ShapeInfo::Rectangle(_),
-                    centered: true,
-                } => {
+            match (create_shape_data, create_shape_centered) {
+                (ShapeInfo::Rectangle(_), true) => {
                     let v = mouse_drag_vec.abs();
                     mesh_builder.rectangle(
                         graphics::DrawMode::stroke(0.1),
@@ -325,10 +321,7 @@ impl<'a, 'b> MainState<'a, 'b> {
                         graphics::WHITE,
                     );
                 }
-                CreateShapeData {
-                    shape: ShapeInfo::Circle(_),
-                    centered: true,
-                } => {
+                (ShapeInfo::Circle(_), true) => {
                     let r = mouse_drag_vec.magnitude();
                     mesh_builder.circle(
                         DrawMode::stroke(0.1),
@@ -342,11 +335,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             }
         }
 
-        if let Some(CreateShapeData {
-            shape: ShapeInfo::Polygon(Some(points)),
-            centered: _,
-        }) = &creation_data.0
-        {
+        if let Some(ShapeInfo::Polygon(Some(points))) = &create_shape_data {
             let _ = mesh_builder.line(
                 points
                     .iter()
@@ -479,11 +468,10 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                     }
                 });
 
+            self.draw_creation_gui(&mut mesh_builder);
             let mesh = mesh_builder.build(ctx)?;
             let _ = graphics::draw(ctx, &mesh, graphics::DrawParam::new());
         }
-
-        self.draw_creation_gui(&mut mesh_builder);
 
         {
             let hidpi_factor = self.world.fetch::<HiDPIFactor>().0;
@@ -563,12 +551,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 }
 
                 {
-                    let mut creation_data = self.world.fetch_mut::<CreationData>();
-                    if let Some(CreateShapeData {
-                        shape: ShapeInfo::Polygon(Some(points)),
-                        centered: _,
-                    }) = creation_data.0.as_mut()
-                    {
+                    let mut create_shape_data = self.world.fetch_mut::<CreationData>();
+                    if let Some(ShapeInfo::Polygon(Some(points))) = create_shape_data.0.as_mut() {
                         points.push(mouse_point.into());
                     }
                 }
@@ -596,14 +580,9 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                     }
                 }
 
-                let creation_data = self.world.fetch::<CreationData>();
-                if let Some(CreateShapeData {
-                    shape: ShapeInfo::Polygon(Some(_points)),
-                    centered: _,
-                }) = &creation_data.0
-                {
+                let create_shape_data = self.world.fetch::<CreationData>();
+                if let Some(ShapeInfo::Polygon(Some(_points))) = &create_shape_data.0 {
                     // BodyBuilder {
-
                     // }.create();
                 }
             }
@@ -625,16 +604,16 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 selected.clear();
             }
 
-            let creation_data = self.world.fetch::<CreationData>();
-            if let Some(data) = &creation_data.0 {
+            let create_shape_opt = self.world.fetch::<CreationData>();
+            let create_shape_data = create_shape_opt.0.as_ref();
+            let create_shape_centered = self.world.fetch::<CreateShapeCentered>().0;
+
+            if let Some(data) = &create_shape_data {
                 let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
                 let current_pos = self.world.fetch::<MousePos>().0;
                 let mouse_drag_vec = start_pos - current_pos;
-                match data {
-                    CreateShapeData {
-                        shape: ShapeInfo::Rectangle(_),
-                        centered: true,
-                    } => {
+                match (data, create_shape_centered) {
+                    (ShapeInfo::Rectangle(_), true) => {
                         BodyBuilder {
                             translation: start_pos,
                             rotation: 0.0,
@@ -647,13 +626,10 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                             )
                         }
                         .create();
-                        std::mem::drop(creation_data);
+                        std::mem::drop(create_shape_opt);
                         self.world.insert(CreationData(None));
                     }
-                    CreateShapeData {
-                        shape: ShapeInfo::Circle(_),
-                        centered: true,
-                    } => {
+                    (ShapeInfo::Circle(_), true) => {
                         BodyBuilder {
                             translation: start_pos,
                             rotation: 0.0,
@@ -666,13 +642,10 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                             )
                         }
                         .create();
-                        std::mem::drop(creation_data);
+                        std::mem::drop(create_shape_opt);
                         self.world.insert(CreationData(None));
                     }
-                    CreateShapeData {
-                        shape: ShapeInfo::Polygon(_),
-                        centered: _,
-                    } => {}
+                    (ShapeInfo::Polygon(_), _) => {}
                     _ => unimplemented!(),
                 }
             }
@@ -690,16 +663,12 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     ) {
         match btn {
             KeyCode::B => {
-                self.world.insert(CreationData(Some(CreateShapeData {
-                    shape: ShapeInfo::Rectangle(None),
-                    centered: true,
-                })));
+                self.world
+                    .insert(CreationData(Some(ShapeInfo::Rectangle(None))));
             }
             KeyCode::C => {
-                self.world.insert(CreationData(Some(CreateShapeData {
-                    shape: ShapeInfo::Circle(None),
-                    centered: true,
-                })));
+                self.world
+                    .insert(CreationData(Some(ShapeInfo::Circle(None))));
             }
             _ => {}
         }

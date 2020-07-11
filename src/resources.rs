@@ -30,13 +30,8 @@ pub enum ShapeInfo {
     Polygon(Option<Vec<Point>>),
 }
 
-#[derive(Clone, Debug)]
-pub struct CreateShapeData {
-    pub shape: ShapeInfo,
-    pub centered: bool,
-}
-
-pub struct CreationData(pub Option<CreateShapeData>);
+pub struct CreationData(pub Option<ShapeInfo>);
+pub struct CreateShapeCentered(pub bool);
 
 pub type LuaRes = std::sync::Arc<std::sync::Mutex<rlua::Lua>>;
 

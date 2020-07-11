@@ -70,6 +70,7 @@ fn main() -> ggez::GameResult {
     world.insert(resources::CreateFriction(0.5));
     world.insert(resources::CreateElasticity(0.2));
     world.insert(resources::SideMenuShown(true));
+    world.insert(resources::CreateShapeCentered(true));
 
     {
         let dimensions = event_loop.get_primary_monitor().get_dimensions();

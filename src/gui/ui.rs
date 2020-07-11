@@ -4,7 +4,8 @@ use crate::gui::imgui_wrapper::*;
 use crate::{
     components::PhysicsBody,
     resources::{
-        CreateElasticity, CreateFriction, CreateMass, Resolution, ShapeInfo, SideMenuShown,
+        CreateElasticity, CreateFriction, CreateMass, CreateShapeCentered, Resolution, ShapeInfo,
+        SideMenuShown,
     },
     BodySet, RigidBody,
 };
@@ -45,6 +46,11 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
             .max(1.0)
             .speed(0.1)
             .build();
+
+            ui.checkbox(
+                im_str!("Center Shapes"),
+                &mut world.get_mut::<CreateShapeCentered>().unwrap().0,
+            );
 
             signal_button!(
                 "Rectangle",
