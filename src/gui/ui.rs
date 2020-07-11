@@ -5,7 +5,7 @@ use crate::{
     components::PhysicsBody,
     resources::{
         CreateElasticity, CreateFriction, CreateMass, CreateShapeCentered, Resolution, ShapeInfo,
-        SideMenuShown,
+        SideMenuShown, CreateShapeStatic
     },
     BodySet, RigidBody,
 };
@@ -48,8 +48,13 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
             .build();
 
             ui.checkbox(
-                im_str!("Center Shapes"),
+                im_str!("Centered"),
                 &mut world.get_mut::<CreateShapeCentered>().unwrap().0,
+            );
+
+            ui.checkbox(
+                im_str!("Static"),
+                &mut world.get_mut::<CreateShapeStatic>().unwrap().0,
             );
 
             signal_button!(

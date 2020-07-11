@@ -17,12 +17,13 @@ use crate::{SCREEN_X, SCREEN_Y};
 
 use crate::components::*;
 
-use crate::resources::{self, CreateElasticity, CreateFriction, CreateMass, MousePos, ShapeInfo};
+use crate::resources::{self, CreateElasticity, CreateFriction, CreateMass, MousePos, ShapeInfo, CreateShapeStatic};
 
 use crate::gui::imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal};
 
 use graphics::DrawMode;
 use ncollide2d as nc;
+use nphysics2d as np;
 use resources::{CreateShapeCentered, CreationData, HiDPIFactor, MouseStartPos};
 
 pub mod body_builder;
@@ -408,6 +409,11 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             let create_shape_opt = self.world.fetch::<CreationData>();
             let create_shape_data = create_shape_opt.0.as_ref();
             let create_shape_centered = self.world.fetch::<CreateShapeCentered>().0;
+            let status = if self.world.fetch::<CreateShapeStatic>().0 {
+                np::object::BodyStatus::Static
+            } else {
+                np::object::BodyStatus::Dynamic
+            };
 
             if let Some(data) = &create_shape_data {
                 let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
@@ -420,6 +426,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                             rotation: 0.0,
                             restitution: self.world.fetch::<CreateElasticity>().0,
                             friction: self.world.fetch::<CreateFriction>().0,
+                            status,
                             ..BodyBuilder::from_world(
                                 &self.world,
                                 ShapeInfo::Rectangle(Some(mouse_drag_vec.abs())),
@@ -444,6 +451,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                             rotation: 0.0,
                             restitution: self.world.fetch::<CreateElasticity>().0,
                             friction: self.world.fetch::<CreateFriction>().0,
+                            status,
                             ..BodyBuilder::from_world(
                                 &self.world,
                                 ShapeInfo::Rectangle(Some(mouse_drag_vec.abs() / 2.0)),
@@ -460,6 +468,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                             rotation: 0.0,
                             restitution: self.world.fetch::<CreateElasticity>().0,
                             friction: self.world.fetch::<CreateFriction>().0,
+                            status,
                             ..BodyBuilder::from_world(
                                 &self.world,
                                 ShapeInfo::Circle(Some(mouse_drag_vec.norm().max(0.001))),
@@ -476,6 +485,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                             rotation: 0.0,
                             restitution: self.world.fetch::<CreateElasticity>().0,
                             friction: self.world.fetch::<CreateFriction>().0,
+                            status,
                             ..BodyBuilder::from_world(
                                 &self.world,
                                 ShapeInfo::Circle(Some((mouse_drag_vec.norm() / 2.0).max(0.001))),

@@ -32,6 +32,7 @@ pub enum ShapeInfo {
 
 pub struct CreationData(pub Option<ShapeInfo>);
 pub struct CreateShapeCentered(pub bool);
+pub struct CreateShapeStatic(pub bool);
 
 pub type LuaRes = std::sync::Arc<std::sync::Mutex<rlua::Lua>>;
 
