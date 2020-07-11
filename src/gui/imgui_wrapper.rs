@@ -36,6 +36,7 @@ pub enum UiChoice {
 #[derive(Clone, PartialEq, Debug)]
 pub enum UiSignal {
     AddShape(ShapeInfo),
+    DeleteShape(Entity)
 }
 
 pub struct ImGuiWrapper {
@@ -148,7 +149,7 @@ impl ImGuiWrapper {
                 #[allow(unreachable_patterns)]
                 match menu {
                     UiChoice::DefaultUI => make_default_ui(&mut ui),
-                    UiChoice::SideMenu(Some(entity)) => make_sidemenu(&mut ui, world, *entity),
+                    UiChoice::SideMenu(Some(entity)) => make_sidemenu(&mut ui, world, *entity, &mut self.sent_signals),
                     _ => unimplemented!(),
                 }
             }

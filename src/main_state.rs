@@ -292,6 +292,15 @@ impl<'a, 'b> MainState<'a, 'b> {
                         centered: true,
                     })));
                 }
+                UiSignal::DeleteShape(entity) => {
+                    self.world.delete_entity(*entity).unwrap();
+                    self.imgui_wrapper.shown_menus.retain(|menu|{
+                        match menu {
+                            UiChoice::SideMenu(Some(menu_entity)) => menu_entity != entity,
+                            _ => true,
+                        }
+                    });
+                }
             });
         self.imgui_wrapper.sent_signals.clear();
     }
@@ -573,9 +582,20 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 let mut info_displayed = self.world.write_storage::<InfoDisplayed>();
                 match get_hovered_shape(&self.world) {
                     Some(entity) => {
-                        info_displayed
-                            .insert(entity, InfoDisplayed::default())
-                            .unwrap();
+                        if info_displayed.get(entity).is_some() {
+                            info_displayed.remove(entity).unwrap();
+
+                            self.imgui_wrapper.shown_menus.retain(|menu| {
+                                match menu {
+                                    UiChoice::SideMenu(Some(menu_entity)) => menu_entity != &entity,
+                                    _ => true,
+                                }
+                            });
+                        } else {
+                            info_displayed
+                                .insert(entity, InfoDisplayed::default())
+                                .unwrap();
+                        }
                     }
                     None => {
                         info_displayed.clear();

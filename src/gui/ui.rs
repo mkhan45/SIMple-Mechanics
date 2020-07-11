@@ -82,7 +82,7 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
     });
 }
 
-pub fn make_sidemenu(ui: &mut imgui::Ui, world: &World, entity: Entity) {
+pub fn make_sidemenu(ui: &mut imgui::Ui, world: &World, entity: Entity, signals: &mut Vec<UiSignal>) {
     let body_set = world.fetch::<BodySet>();
     let physics_body = {
         let physics_bodies = world.read_storage::<PhysicsBody>();
@@ -125,6 +125,8 @@ pub fn make_sidemenu(ui: &mut imgui::Ui, world: &World, entity: Entity) {
             vel.linear.x, vel.linear.y
         ));
         ui.text(format!("Angular Velocity: {:.2}", vel.angular));
+
+        signal_button!("Delete Shape", UiSignal::DeleteShape(entity), ui, signals);
     });
 }
 
