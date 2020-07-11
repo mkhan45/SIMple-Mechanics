@@ -5,7 +5,9 @@ use std::path::Path;
 use crate::gui::imgui_wrapper::*;
 use crate::{
     components::PhysicsBody,
-    resources::{CreateElasticity, CreateFriction, CreateMass, ShapeInfo},
+    resources::{
+        CreateElasticity, CreateFriction, CreateMass, Resolution, ShapeInfo, SideMenuShown,
+    },
     BodySet, RigidBody, Vector,
 };
 
@@ -94,7 +96,36 @@ pub fn make_sidemenu(ui: &mut imgui::Ui, world: &World, entity: Entity) {
 
     let pos = physics_body.position();
     let vel = physics_body.velocity();
-    dbg!(pos, vel);
+
+    let resolution = world.fetch::<Resolution>().0;
+    let mut sidemenu_shown = world.fetch_mut::<SideMenuShown>().0;
+    let win = imgui::Window::new(im_str!("Object Info"))
+        .position([0.0, 30.0], imgui::Condition::Always)
+        .opened(&mut sidemenu_shown)
+        .size(
+            [resolution.x * 0.40, resolution.y - 30.0],
+            imgui::Condition::Appearing,
+        )
+        .size_constraints(
+            [resolution.x * 0.2, resolution.y - 30.0],
+            [resolution.x * 0.6, resolution.y - 30.0],
+        )
+        .collapsible(false)
+        .movable(false);
+
+    win.build(ui, || {
+        ui.text(im_str!("\nObject Info"));
+        ui.text(format!(
+            "Position: {:.2}, {:.2}",
+            pos.translation.x, pos.translation.y
+        ));
+        ui.text(format!("Rotation: {:.2}", pos.rotation.angle()));
+        ui.text(format!(
+            "Velocity: {:.2}, {:.2}",
+            vel.linear.x, vel.linear.y
+        ));
+        ui.text(format!("Angular Velocity: {:.2}", vel.angular));
+    });
 }
 
 pub fn make_default_ui(ui: &mut imgui::Ui) {

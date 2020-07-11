@@ -70,6 +70,15 @@ fn main() -> ggez::GameResult {
     world.insert(resources::CreateMass(5.0));
     world.insert(resources::CreateFriction(0.5));
     world.insert(resources::CreateElasticity(0.2));
+    world.insert(resources::SideMenuShown(true));
+
+    {
+        let dimensions = event_loop.get_primary_monitor().get_dimensions();
+        world.insert(resources::Resolution(Vector::new(
+            dimensions.width as f32,
+            dimensions.height as f32,
+        )));
+    }
 
     let lua = rlua::Lua::new();
     lua.context(|lua_ctx| {

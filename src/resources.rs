@@ -13,6 +13,14 @@ impl Default for MousePos {
     }
 }
 
+#[derive(Copy, Clone)]
+pub struct Resolution(pub Vector);
+impl Default for Resolution {
+    fn default() -> Self {
+        Resolution(Vector::new(1920.0, 1080.0))
+    }
+}
+
 #[derive(Copy, Clone, Default)]
 pub struct DT(pub std::time::Duration);
 
@@ -47,3 +55,6 @@ pub struct CreateElasticity(pub f32);
 
 #[derive(Copy, Clone, Default)]
 pub struct CreateFriction(pub f32);
+
+#[derive(Copy, Clone, Default)]
+pub struct SideMenuShown(pub bool);

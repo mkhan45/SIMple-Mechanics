@@ -405,86 +405,87 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
         graphics::clear(ctx, graphics::BLACK);
 
-        {
-            let hidpi_factor = self.world.fetch::<HiDPIFactor>().0;
-            self.imgui_wrapper
-                .render(ctx, hidpi_factor, &mut self.world);
-        }
-
         let mut mesh_builder = graphics::MeshBuilder::new();
 
-        self.draw_creation_gui(&mut mesh_builder);
+        {
+            let entities = self.world.entities();
 
-        let entities = self.world.entities();
+            let colliders = self.world.read_storage::<Collider>();
+            let colors = self.world.read_storage::<crate::components::Color>();
+            let collider_set = self.world.fetch::<ColliderSet>();
 
-        let colliders = self.world.read_storage::<Collider>();
-        let colors = self.world.read_storage::<crate::components::Color>();
-        let collider_set = self.world.fetch::<ColliderSet>();
+            let selected = self.world.read_storage::<Selected>();
 
-        let selected = self.world.read_storage::<Selected>();
+            (&colliders, &colors, &entities)
+                .join()
+                .for_each(|(collider_comp, color, e)| {
+                    let collider = collider_set
+                        .get(collider_comp.coll_handle)
+                        .expect("error getting body to draw");
 
-        (&colliders, &colors, &entities)
-            .join()
-            .for_each(|(collider_comp, color, e)| {
-                let collider = collider_set
-                    .get(collider_comp.coll_handle)
-                    .expect("error getting body to draw");
+                    let (pos, rot) = {
+                        let isometry = collider.position();
+                        let na_vector = isometry.translation.vector;
+                        ([na_vector.x, na_vector.y], isometry.rotation.angle())
+                    };
 
-                let (pos, rot) = {
-                    let isometry = collider.position();
-                    let na_vector = isometry.translation.vector;
-                    ([na_vector.x, na_vector.y], isometry.rotation.angle())
-                };
+                    if collider.shape().is_shape::<nc::shape::Ball<f32>>() {
+                        let shape = collider
+                            .shape()
+                            .downcast_ref::<nc::shape::Ball<f32>>()
+                            .expect("bad shape");
 
-                if collider.shape().is_shape::<nc::shape::Ball<f32>>() {
-                    let shape = collider
-                        .shape()
-                        .downcast_ref::<nc::shape::Ball<f32>>()
-                        .expect("bad shape");
+                        draw_circle(&mut mesh_builder, pos, rot, shape.radius(), color.0, false);
 
-                    draw_circle(&mut mesh_builder, pos, rot, shape.radius(), color.0, false);
+                        if selected.get(e).is_some() {
+                            draw_circle(
+                                &mut mesh_builder,
+                                pos,
+                                rot,
+                                shape.radius(),
+                                Color::new(1.0, 0.0, 0.0, 1.0),
+                                true,
+                            );
+                        }
+                    } else if collider.shape().is_shape::<nc::shape::Cuboid<f32>>() {
+                        let shape = collider
+                            .shape()
+                            .downcast_ref::<nc::shape::Cuboid<f32>>()
+                            .expect("bad shape");
 
-                    if selected.get(e).is_some() {
-                        draw_circle(
-                            &mut mesh_builder,
-                            pos,
-                            rot,
-                            shape.radius(),
-                            Color::new(1.0, 0.0, 0.0, 1.0),
-                            true,
-                        );
-                    }
-                } else if collider.shape().is_shape::<nc::shape::Cuboid<f32>>() {
-                    let shape = collider
-                        .shape()
-                        .downcast_ref::<nc::shape::Cuboid<f32>>()
-                        .expect("bad shape");
-
-                    draw_rect(
-                        &mut mesh_builder,
-                        pos,
-                        rot,
-                        *shape.half_extents(),
-                        color.0,
-                        false,
-                    );
-
-                    if selected.get(e).is_some() {
                         draw_rect(
                             &mut mesh_builder,
                             pos,
                             rot,
                             *shape.half_extents(),
-                            graphics::Color::new(1.0, 0.0, 0.0, 1.0),
-                            true,
+                            color.0,
+                            false,
                         );
+
+                        if selected.get(e).is_some() {
+                            draw_rect(
+                                &mut mesh_builder,
+                                pos,
+                                rot,
+                                *shape.half_extents(),
+                                graphics::Color::new(1.0, 0.0, 0.0, 1.0),
+                                true,
+                            );
+                        }
                     }
-                }
-            });
+                });
 
-        let mesh = mesh_builder.build(ctx)?;
+            let mesh = mesh_builder.build(ctx)?;
+            let _ = graphics::draw(ctx, &mesh, graphics::DrawParam::new());
+        }
 
-        let _ = graphics::draw(ctx, &mesh, graphics::DrawParam::new());
+        self.draw_creation_gui(&mut mesh_builder);
+
+        {
+            let hidpi_factor = self.world.fetch::<HiDPIFactor>().0;
+            self.imgui_wrapper
+                .render(ctx, hidpi_factor, &mut self.world);
+        }
 
         graphics::present(ctx)?;
 
@@ -510,6 +511,9 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             )
             .expect("error resizing");
         }
+
+        self.world
+            .insert(resources::Resolution(Vector::new(width, height)));
     }
 
     fn mouse_motion_event(&mut self, ctx: &mut ggez::Context, x: f32, y: f32, _dx: f32, _dy: f32) {
@@ -567,10 +571,20 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             }
             MouseButton::Right => {
                 let mut info_displayed = self.world.write_storage::<InfoDisplayed>();
-                if let Some(entity) = get_hovered_shape(&self.world) {
-                    info_displayed
-                        .insert(entity, InfoDisplayed::default())
-                        .unwrap();
+                match get_hovered_shape(&self.world) {
+                    Some(entity) => {
+                        info_displayed
+                            .insert(entity, InfoDisplayed::default())
+                            .unwrap();
+                    }
+                    None => {
+                        info_displayed.clear();
+
+                        // remove all the sidemenus in shown menus
+                        self.imgui_wrapper
+                            .shown_menus
+                            .retain(|menu| !matches!(menu, UiChoice::SideMenu(_)));
+                    }
                 }
 
                 let creation_data = self.world.fetch::<CreationData>();
