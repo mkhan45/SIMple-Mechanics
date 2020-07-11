@@ -50,6 +50,3 @@ pub struct CreateElasticity(pub f32);
 
 #[derive(Copy, Clone, Default)]
 pub struct CreateFriction(pub f32);
-
-#[derive(Copy, Clone, Default)]
-pub struct SideMenuShown(pub bool);

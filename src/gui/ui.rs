@@ -4,8 +4,8 @@ use crate::gui::imgui_wrapper::*;
 use crate::{
     components::PhysicsBody,
     resources::{
-        CreateElasticity, CreateFriction, CreateMass, CreateShapeCentered, Resolution, ShapeInfo,
-        SideMenuShown, CreateShapeStatic
+        CreateElasticity, CreateFriction, CreateMass, CreateShapeCentered, CreateShapeStatic,
+        Resolution, ShapeInfo,
     },
     BodySet, RigidBody,
 };
@@ -100,10 +100,8 @@ pub fn make_sidemenu(
     let vel = physics_body.velocity();
 
     let resolution = world.fetch::<Resolution>().0;
-    let mut sidemenu_shown = world.fetch_mut::<SideMenuShown>().0;
     let win = imgui::Window::new(im_str!("Object Info"))
         .position([0.0, 30.0], imgui::Condition::Always)
-        .opened(&mut sidemenu_shown)
         .size(
             [resolution.x * 0.40, resolution.y - 30.0],
             imgui::Condition::Appearing,

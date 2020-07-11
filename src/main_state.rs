@@ -17,7 +17,9 @@ use crate::{SCREEN_X, SCREEN_Y};
 
 use crate::components::*;
 
-use crate::resources::{self, CreateElasticity, CreateFriction, CreateMass, MousePos, ShapeInfo, CreateShapeStatic};
+use crate::resources::{
+    self, CreateElasticity, CreateFriction, CreateMass, CreateShapeStatic, MousePos, ShapeInfo,
+};
 
 use crate::gui::imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal};
 

@@ -69,7 +69,6 @@ fn main() -> ggez::GameResult {
     world.insert(resources::CreateMass(5.0));
     world.insert(resources::CreateFriction(0.5));
     world.insert(resources::CreateElasticity(0.2));
-    world.insert(resources::SideMenuShown(true));
     world.insert(resources::CreateShapeCentered(true));
     world.insert(resources::CreateShapeStatic(false));
 
