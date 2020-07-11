@@ -321,11 +321,37 @@ impl<'a, 'b> MainState<'a, 'b> {
                         graphics::WHITE,
                     );
                 }
+                (ShapeInfo::Rectangle(_), false) => {
+                    let (start_pos, extents) = if mouse_drag_vec.y > 0.0 {
+                        (start_pos, mouse_drag_vec)
+                    } else {
+                        (start_pos + mouse_drag_vec, -mouse_drag_vec)
+                    };
+
+                    mesh_builder.rectangle(
+                        graphics::DrawMode::stroke(0.1),
+                        graphics::Rect::new(start_pos.x, start_pos.y, extents.x, extents.y),
+                        graphics::WHITE,
+                    );
+                }
                 (ShapeInfo::Circle(_), true) => {
                     let r = mouse_drag_vec.magnitude();
                     mesh_builder.circle(
                         DrawMode::stroke(0.1),
                         [start_pos.x, start_pos.y],
+                        r,
+                        0.01,
+                        graphics::WHITE,
+                    );
+                }
+                (ShapeInfo::Circle(_), false) => {
+                    let r = mouse_drag_vec.magnitude() / 2.0;
+                    mesh_builder.circle(
+                        DrawMode::stroke(0.1),
+                        [
+                            start_pos.x + mouse_drag_vec.x / 2.0,
+                            start_pos.y + mouse_drag_vec.y / 2.0,
+                        ],
                         r,
                         0.01,
                         graphics::WHITE,
@@ -629,6 +655,30 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         std::mem::drop(create_shape_opt);
                         self.world.insert(CreationData(None));
                     }
+                    (ShapeInfo::Rectangle(_), false) => {
+                        let mut start_pos = start_pos;
+                        if mouse_drag_vec.x < 0.0 {
+                            start_pos.x += mouse_drag_vec.x.abs();
+                        }
+                        if mouse_drag_vec.y < 0.0 {
+                            start_pos.y += mouse_drag_vec.y.abs();
+                        }
+
+                        BodyBuilder {
+                            translation: start_pos - mouse_drag_vec.abs() / 2.0,
+                            rotation: 0.0,
+                            restitution: self.world.fetch::<CreateElasticity>().0,
+                            friction: self.world.fetch::<CreateFriction>().0,
+                            ..BodyBuilder::from_world(
+                                &self.world,
+                                ShapeInfo::Rectangle(Some(mouse_drag_vec.abs() / 2.0)),
+                                self.world.fetch::<CreateMass>().0,
+                            )
+                        }
+                        .create();
+                        std::mem::drop(create_shape_opt);
+                        self.world.insert(CreationData(None));
+                    }
                     (ShapeInfo::Circle(_), true) => {
                         BodyBuilder {
                             translation: start_pos,
@@ -645,8 +695,23 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         std::mem::drop(create_shape_opt);
                         self.world.insert(CreationData(None));
                     }
+                    (ShapeInfo::Circle(_), false) => {
+                        BodyBuilder {
+                            translation: start_pos - mouse_drag_vec / 2.0,
+                            rotation: 0.0,
+                            restitution: self.world.fetch::<CreateElasticity>().0,
+                            friction: self.world.fetch::<CreateFriction>().0,
+                            ..BodyBuilder::from_world(
+                                &self.world,
+                                ShapeInfo::Circle(Some((mouse_drag_vec.norm() / 2.0).max(0.001))),
+                                self.world.fetch::<CreateMass>().0,
+                            )
+                        }
+                        .create();
+                        std::mem::drop(create_shape_opt);
+                        self.world.insert(CreationData(None));
+                    }
                     (ShapeInfo::Polygon(_), _) => {}
-                    _ => unimplemented!(),
                 }
             }
         }
