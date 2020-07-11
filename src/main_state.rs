@@ -290,7 +290,7 @@ impl<'a, 'b> MainState<'a, 'b> {
                     self.world.insert(CreationData(Some(shape_info.clone())))
                 }
                 UiSignal::DeleteShape(entity) => {
-                    self.world.delete_entity(*entity).unwrap();
+                    self.delete_entity(*entity);
                     self.imgui_wrapper.remove_sidemenu(entity);
                 }
             });
@@ -372,6 +372,23 @@ impl<'a, 'b> MainState<'a, 'b> {
                 graphics::WHITE,
             );
         }
+    }
+
+    pub fn delete_entity(&mut self, entity: Entity) {
+        {
+            let mut body_set = self.world.fetch_mut::<BodySet>();
+            let body_storage = self.world.read_storage::<PhysicsBody>();
+            let body_handle = body_storage.get(entity).unwrap();
+
+            let mut collider_set = self.world.fetch_mut::<ColliderSet>();
+            let collider_storage = self.world.read_storage::<Collider>();
+            let collider_handle = collider_storage.get(entity).unwrap();
+
+            body_set.remove(body_handle.body_handle);
+            collider_set.remove(collider_handle.coll_handle);
+        }
+
+        self.world.delete_entity(entity).unwrap();
     }
 }
 
@@ -503,7 +520,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             let hidpi_factor = self.world.fetch::<HiDPIFactor>().0;
             self.imgui_wrapper
                 .render(ctx, hidpi_factor, &mut self.world);
-        }
+            }
 
         graphics::present(ctx)?;
 
@@ -520,19 +537,19 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 ctx,
                 ggez::graphics::Rect::new(0.0, 0.0, new_width, SCREEN_Y),
             )
-            .expect("error resizing");
-        } else {
-            let new_height = SCREEN_Y * aspect_ratio;
-            ggez::graphics::set_screen_coordinates(
-                ctx,
-                ggez::graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
-            )
-            .expect("error resizing");
+                .expect("error resizing");
+            } else {
+                let new_height = SCREEN_Y * aspect_ratio;
+                ggez::graphics::set_screen_coordinates(
+                    ctx,
+                    ggez::graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
+                )
+                    .expect("error resizing");
         }
 
         self.world
             .insert(resources::Resolution(Vector::new(width, height)));
-    }
+        }
 
     fn mouse_motion_event(&mut self, ctx: &mut ggez::Context, x: f32, y: f32, _dx: f32, _dy: f32) {
         self.imgui_wrapper.update_mouse_pos(x, y);
@@ -555,9 +572,9 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         y: f32,
     ) {
         self.imgui_wrapper.update_mouse_down((
-            btn == MouseButton::Left,
-            btn == MouseButton::Right,
-            btn == MouseButton::Middle,
+                btn == MouseButton::Left,
+                btn == MouseButton::Right,
+                btn == MouseButton::Middle,
         ));
 
         let screen_size = graphics::drawable_size(ctx);
@@ -603,7 +620,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         self.imgui_wrapper
                             .shown_menus
                             .retain(|menu| !matches!(menu, UiChoice::SideMenu(_)));
-                    }
+                        }
                 }
 
                 let create_shape_data = self.world.fetch::<CreationData>();
@@ -730,11 +747,11 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             KeyCode::B => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Rectangle(None))));
-            }
+                }
             KeyCode::C => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Circle(None))));
-            }
+                }
             _ => {}
         }
 
@@ -769,8 +786,8 @@ fn draw_circle(
     mesh_builder.circle(
         drawmode,
         [
-            pos[0] + rad * rot.cos() * 0.75,
-            pos[1] + rad * rot.sin() * 0.75,
+        pos[0] + rad * rot.cos() * 0.75,
+        pos[1] + rad * rot.sin() * 0.75,
         ],
         rad * 0.15,
         0.01,
@@ -808,18 +825,18 @@ fn draw_rect(
             center_pos[1] + half_extents.y,
         ),
     ]
-    .iter()
-    .map(|point| {
-        // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
-        // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
-        [
-            rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
-                + center_pos[0],
-            rot_sin * (point.x - center_pos[0])
-                + rot_cos * (point.y - center_pos[1])
-                + center_pos[1],
-        ]
-    })
+        .iter()
+        .map(|point| {
+            // new x position is cos(theta) * (p.x - c.x) - sin(theta) * (p.y - c.y) + c.x
+            // new y position is sin(theta) * (p.x - c.x) + cos(theta) * (p.y - c.y) + c.y
+            [
+                rot_cos * (point.x - center_pos[0]) - rot_sin * (point.y - center_pos[1])
+                    + center_pos[0],
+                    rot_sin * (point.x - center_pos[0])
+                        + rot_cos * (point.y - center_pos[1])
+                        + center_pos[1],
+            ]
+        })
     .collect::<SmallVec<[[f32; 2]; 4]>>();
 
     let points = _points.as_slice();
@@ -833,7 +850,7 @@ fn draw_rect(
     mesh_builder
         .polygon(drawmode, points, color)
         .expect("error drawing rotated rect");
-}
+    }
 
 fn get_hovered_shape(world: &World) -> Option<Entity> {
     let geometrical_world = world.fetch::<GeometricalWorld>();
@@ -850,5 +867,5 @@ fn get_hovered_shape(world: &World) -> Option<Entity> {
             let specs_hand = obj.1.user_data().unwrap();
             *specs_hand.downcast_ref::<Entity>().unwrap()
         })
-        .next()
+    .next()
 }
