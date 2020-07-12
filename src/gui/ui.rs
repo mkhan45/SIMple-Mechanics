@@ -1,13 +1,15 @@
 use imgui::*;
 
+use std::convert::TryInto;
+
 use crate::gui::imgui_wrapper::*;
 use crate::{
     components::{Collider, PhysicsBody},
     resources::{
         CreateElasticity, CreateFriction, CreateMass, CreateShapeCentered, CreateShapeStatic,
-        Resolution, ShapeInfo,
+        FrameSteps, Resolution, ShapeInfo,
     },
-    BodySet, ColliderSet, RigidBody,
+    BodySet, ColliderSet, MechanicalWorld, RigidBody,
 };
 
 use nphysics2d::material::BasicMaterial;
@@ -36,7 +38,7 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
             )
             .min(0.00)
             .max(1.0)
-            .speed(0.1)
+            .speed(0.05)
             .build();
 
             ui.drag_float(
@@ -45,7 +47,7 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
             )
             .min(0.00)
             .max(1.0)
-            .speed(0.1)
+            .speed(0.05)
             .build();
 
             ui.checkbox(
@@ -76,6 +78,31 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
                 ui,
                 signals
             );
+        });
+
+        ui.menu(im_str!("Global Variables"), true, || {
+            let mut mechanical_world = world.fetch_mut::<MechanicalWorld>();
+
+            let mut timestep = mechanical_world.timestep();
+            ui.drag_float(im_str!("Timestep"), &mut timestep)
+                .min(1e-10)
+                .max(2.0)
+                .speed(0.01)
+                .build();
+            mechanical_world.set_timestep(timestep);
+
+            ui.drag_float(im_str!("Gravity"), &mut mechanical_world.gravity.y)
+                .speed(0.1)
+                .build();
+
+            {
+                std::mem::drop(mechanical_world);
+                let mut frame_steps_i32 = world.fetch_mut::<FrameSteps>().0 as i32;
+                ui.drag_int(im_str!("Steps Per Frame"), &mut frame_steps_i32)
+                    .min(0)
+                    .build();
+                world.insert(FrameSteps(frame_steps_i32.try_into().unwrap()));
+            }
         });
 
         signal_button!("Clear Scene", UiSignal::DeleteAll, ui, signals);
@@ -149,13 +176,13 @@ pub fn make_sidemenu(
         ui.drag_float(im_str!("Friction"), &mut basic_material.friction)
             .min(0.0)
             .max(1.0)
-            .speed(0.1)
+            .speed(0.05)
             .build();
 
         ui.drag_float(im_str!("Elasticity"), &mut basic_material.restitution)
             .min(0.0)
             .max(1.0)
-            .speed(0.1)
+            .speed(0.05)
             .build();
 
         signal_button!("Delete Shape", UiSignal::DeleteShape(entity), ui, signals);

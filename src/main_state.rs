@@ -18,7 +18,8 @@ use crate::{SCREEN_X, SCREEN_Y};
 use crate::components::*;
 
 use crate::resources::{
-    self, CreateElasticity, CreateFriction, CreateMass, CreateShapeStatic, MousePos, ShapeInfo,
+    self, CreateElasticity, CreateFriction, CreateMass, CreateShapeStatic, FrameSteps, MousePos,
+    ShapeInfo,
 };
 
 use crate::gui::imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal};
@@ -202,13 +203,15 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         let joint_constraint_set = &mut *self.world.fetch_mut::<JointConstraintSet>();
         let force_generator_set = &mut *self.world.fetch_mut::<ForceGeneratorSet>();
 
-        self.world.fetch_mut::<MechanicalWorld>().step(
-            geometrical_world,
-            body_set,
-            collider_set,
-            joint_constraint_set,
-            force_generator_set,
-        );
+        (0..self.world.fetch::<FrameSteps>().0).for_each(|_| {
+            self.world.fetch_mut::<MechanicalWorld>().step(
+                geometrical_world,
+                body_set,
+                collider_set,
+                joint_constraint_set,
+                force_generator_set,
+            );
+        });
 
         Ok(())
     }
