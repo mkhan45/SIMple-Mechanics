@@ -77,6 +77,8 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
                 signals
             );
         });
+
+        signal_button!("Clear Scene", UiSignal::DeleteAll, ui, signals);
     });
 }
 

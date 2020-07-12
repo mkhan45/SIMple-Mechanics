@@ -37,6 +37,7 @@ pub enum UiChoice {
 pub enum UiSignal {
     AddShape(ShapeInfo),
     DeleteShape(Entity),
+    DeleteAll,
 }
 
 pub struct ImGuiWrapper {

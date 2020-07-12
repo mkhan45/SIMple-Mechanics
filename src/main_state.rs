@@ -54,6 +54,22 @@ impl<'a, 'b> MainState<'a, 'b> {
                     self.delete_entity(*entity);
                     self.imgui_wrapper.remove_sidemenu(entity);
                 }
+                UiSignal::DeleteAll => {
+                    let mut delete_buff: Vec<Entity> = Vec::new();
+
+                    {
+                        let physics_bodies = self.world.read_storage::<PhysicsBody>();
+                        let entities = self.world.entities();
+
+                        (&physics_bodies, &entities).join().for_each(|(_, entity)| {
+                            delete_buff.push(entity);
+                        });
+                    }
+
+                    delete_buff.iter().for_each(|entity| {
+                        self.delete_entity(*entity);
+                    });
+                }
             });
         self.imgui_wrapper.sent_signals.clear();
     }
@@ -273,8 +289,9 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 });
 
             self.draw_creation_gui(&mut mesh_builder);
-            let mesh = mesh_builder.build(ctx)?;
-            let _ = graphics::draw(ctx, &mesh, graphics::DrawParam::new());
+            if let Ok(mesh) = mesh_builder.build(ctx) {
+                let _ = graphics::draw(ctx, &mesh, graphics::DrawParam::new());
+            }
         }
 
         {
