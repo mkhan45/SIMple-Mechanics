@@ -2,6 +2,8 @@ use imgui::*;
 
 use std::convert::TryInto;
 
+use nphysics2d as np;
+
 use crate::gui::imgui_wrapper::*;
 use crate::{
     components::{Collider, PhysicsBody},
@@ -9,7 +11,7 @@ use crate::{
         CreateElasticity, CreateFriction, CreateMass, CreateShapeCentered, CreateShapeStatic,
         FrameSteps, Resolution, ShapeInfo,
     },
-    BodySet, ColliderSet, MechanicalWorld, RigidBody,
+    BodySet, ColliderSet, MechanicalWorld, RigidBody, Vector,
 };
 
 use nphysics2d::material::BasicMaterial;
@@ -149,20 +151,7 @@ pub fn make_sidemenu(
         .movable(false);
 
     win.build(ui, || {
-        let pos = physics_body.position();
-        let vel = physics_body.velocity();
-
         ui.text(im_str!("\nObject Info"));
-        ui.text(format!(
-            "Position: {:.2}, {:.2}",
-            pos.translation.x, pos.translation.y
-        ));
-        ui.text(format!("Rotation: {:.2}", pos.rotation.angle()));
-        ui.text(format!(
-            "Velocity: {:.2}, {:.2}",
-            vel.linear.x, vel.linear.y
-        ));
-        ui.text(format!("Angular Velocity: {:.2}", vel.angular));
 
         let mut mass = physics_body.augmented_mass().linear;
         ui.drag_float(im_str!("Mass"), &mut mass)
@@ -185,6 +174,31 @@ pub fn make_sidemenu(
             .max(1.0)
             .speed(0.05)
             .build();
+
+        let pos = physics_body.position();
+        let mut linear_pos = [pos.translation.x, pos.translation.y];
+        ui.drag_float2(im_str!("Position"), &mut linear_pos)
+            .speed(0.05)
+            .build();
+        let mut angular_pos = pos.rotation.angle();
+        ui.drag_float(im_str!("Rotation"), &mut angular_pos)
+            .speed(0.05)
+            .build();
+
+        let translation = Vector::new(linear_pos[0], linear_pos[1]);
+        physics_body.set_position(np::math::Isometry::new(translation, angular_pos));
+
+        let vel = physics_body.velocity();
+        let mut linear_vel = [vel.linear.x, vel.linear.y];
+        let mut angular_vel = vel.angular;
+        ui.drag_float2(im_str!("Velocity"), &mut linear_vel)
+            .speed(0.05)
+            .build();
+        ui.drag_float(im_str!("Angular Velocity"), &mut angular_vel)
+            .speed(0.05)
+            .build();
+        physics_body.set_linear_velocity(Vector::new(linear_vel[0], linear_vel[1]));
+        physics_body.set_angular_velocity(angular_vel);
 
         signal_button!("Delete Shape", UiSignal::DeleteShape(entity), ui, signals);
     });
