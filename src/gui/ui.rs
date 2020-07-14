@@ -106,6 +106,7 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
         });
 
         signal_button!("Clear Scene", UiSignal::DeleteAll, ui, signals);
+        signal_button!("Pause", UiSignal::TogglePause, ui, signals);
     });
 }
 

@@ -53,3 +53,12 @@ pub struct CreateFriction(pub f32);
 
 #[derive(Copy, Clone, Default)]
 pub struct FrameSteps(pub u16);
+
+#[derive(Copy, Clone, Default)]
+pub struct Paused(pub bool);
+
+impl Paused {
+    pub fn toggle(&mut self) {
+        self.0 = !self.0;
+    }
+}

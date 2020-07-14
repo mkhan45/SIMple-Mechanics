@@ -19,7 +19,7 @@ use crate::components::*;
 
 use crate::resources::{
     self, CreateElasticity, CreateFriction, CreateMass, CreateShapeStatic, FrameSteps, MousePos,
-    ShapeInfo,
+    Paused, ShapeInfo,
 };
 
 use crate::gui::imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal};
@@ -70,6 +70,9 @@ impl<'a, 'b> MainState<'a, 'b> {
                     delete_buff.iter().for_each(|entity| {
                         self.delete_entity(*entity);
                     });
+                }
+                UiSignal::TogglePause => {
+                    self.world.fetch_mut::<Paused>().toggle();
                 }
             });
         self.imgui_wrapper.sent_signals.clear();
@@ -166,6 +169,8 @@ impl<'a, 'b> MainState<'a, 'b> {
             collider_set.remove(collider_handle.coll_handle);
         }
 
+        self.imgui_wrapper.remove_sidemenu(&entity);
+
         self.world.delete_entity(entity).unwrap();
     }
 }
@@ -203,15 +208,17 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         let joint_constraint_set = &mut *self.world.fetch_mut::<JointConstraintSet>();
         let force_generator_set = &mut *self.world.fetch_mut::<ForceGeneratorSet>();
 
-        (0..self.world.fetch::<FrameSteps>().0).for_each(|_| {
-            self.world.fetch_mut::<MechanicalWorld>().step(
-                geometrical_world,
-                body_set,
-                collider_set,
-                joint_constraint_set,
-                force_generator_set,
-            );
-        });
+        if !self.world.fetch::<Paused>().0 {
+            (0..self.world.fetch::<FrameSteps>().0).for_each(|_| {
+                self.world.fetch_mut::<MechanicalWorld>().step(
+                    geometrical_world,
+                    body_set,
+                    collider_set,
+                    joint_constraint_set,
+                    force_generator_set,
+                );
+            });
+        }
 
         Ok(())
     }
@@ -405,9 +412,21 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 }
 
                 let create_shape_data = self.world.fetch::<CreationData>();
-                if let Some(ShapeInfo::Polygon(Some(_points))) = &create_shape_data.0 {
-                    // BodyBuilder {
-                    // }.create();
+                if let Some(ShapeInfo::Polygon(Some(_points))) = &create_shape_data.0.clone() {
+                    dbg!();
+                    let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
+                    BodyBuilder {
+                        translation: start_pos,
+                        rotation: 0.0,
+                        restitution: self.world.fetch::<CreateElasticity>().0,
+                        friction: self.world.fetch::<CreateFriction>().0,
+                        ..BodyBuilder::from_world(
+                            &self.world,
+                            create_shape_data.0.as_ref().unwrap().clone(),
+                            self.world.fetch::<CreateMass>().0,
+                        )
+                    }
+                    .create();
                 }
             }
             _ => {}

@@ -73,6 +73,7 @@ fn main() -> ggez::GameResult {
     world.insert(resources::CreateShapeStatic(false));
 
     world.insert(resources::FrameSteps(1));
+    world.insert(resources::Paused(false));
 
     {
         let dimensions = event_loop.get_primary_monitor().get_dimensions();

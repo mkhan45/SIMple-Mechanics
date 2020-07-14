@@ -51,6 +51,9 @@ impl<'a> BodyBuilder<'a> {
         let shape = match shape_info {
             ShapeInfo::Circle(Some(r)) => ShapeHandle::new(nc::shape::Ball::new(r)),
             ShapeInfo::Rectangle(Some(v)) => ShapeHandle::new(nc::shape::Cuboid::new(v)),
+            ShapeInfo::Polygon(Some(points)) => {
+                ShapeHandle::new(nc::shape::ConvexPolygon::try_new(points).unwrap())
+            }
             _ => panic!("Invalid shape info without data"),
         };
 
