@@ -1,14 +1,27 @@
 add_shapes(
    -- floor
-   {shape = "rect", x = 0, y = SCREEN_Y, status = "static", w = SCREEN_X * 5.0, h = 0.25, elasticity = 0.1},
+   --{shape = "rect", x = 0, y = SCREEN_Y, status = "static", w = SCREEN_X * 5.0, h = 0.25, elasticity = 0.1},
 
-   {shape = "rect", x = 5.0, y = 12.0, w = 0.5, h = 1.25, mass = 5.0, y_vel = -15.0, rotvel = 5.0},
-   {shape = "rect", x = 10.0, y = 0.0, w = 2.0, h = 1.0, mass = 8.0, rotation = PI / 3.0},
-   {shape = "circle", x = 19.25, y = 1.0, r = 2.0, mass = 12.5, elasticity = 0.5, name = "circle"}
+   -- {shape = "rect", x = 5.0, y = 12.0, w = 0.5, h = 1.25, mass = 5.0, y_vel = -15.0, rotvel = 5.0},
+   -- {shape = "rect", x = 10.0, y = 0.0, w = 2.0, h = 1.0, mass = 8.0, rotation = PI / 3.0},
+   -- {shape = "circle", x = 19.25, y = 1.0, r = 2.0, mass = 12.5, elasticity = 0.5, name = "circle"}
 
    -- static floating square
    -- {shape = "rect", x = SCREEN_X / 3.0, y = SCREEN_Y / 2.0, status = "static", w = 0.1, h = 0.1}
 )
+
+add_shapes(
+    {shape = "circle", x = 5, y = SCREEN_Y / 2, r = 1.5, elasticity = 1.0, mass = 10, x_vel = 8},
+    {shape = "circle", x = SCREEN_X, y = SCREEN_Y / 2, r = 1.5, elasticity = 1.0, mass = 5, x_vel = -8},
+
+    {shape = "rect", x = 0, y = 0, w = 0.5, h = SCREEN_Y, elasticity = 0.5, mass = 5, status="static"},
+    {shape = "rect", x = SCREEN_X + 5, y = 0, w = 0.5, h = SCREEN_Y, elasticity = 0.5, mass = 5, status="static"},
+
+    {shape = "rect", x = SCREEN_X - 10, y = 4, w = 1, h = 1, elasticity = 0.5, mass = 5},
+    {shape = "rect", x = 0, y = SCREEN_Y, w = SCREEN_X + 50, h = 0.5, elasticity = 0.5, mass = 1, status = "static"}
+)
+
+GRAVITY = 0
 
 function square(x)
    return x * x

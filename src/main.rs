@@ -88,6 +88,8 @@ fn main() -> ggez::GameResult {
         let globals = lua_ctx.globals();
         let shapes: Vec<rlua::Table> = Vec::new();
         globals.set("shapes", shapes).unwrap();
+        globals.set("PAUSED", false).unwrap();
+        globals.set("GRAVITY", 9.81).unwrap();
         globals.set("PI", std::f32::consts::PI).unwrap();
         globals.set("SCREEN_X", crate::SCREEN_X).unwrap();
         globals.set("SCREEN_Y", crate::SCREEN_Y).unwrap();
@@ -113,6 +115,8 @@ fn main() -> ggez::GameResult {
             .unwrap();
     });
     world.insert(std::sync::Arc::new(std::sync::Mutex::new(lua)));
+    world.insert(resources::FPS(60.0));
+    world.insert(resources::DT(std::time::Duration::from_millis(16)));
 
     world.register::<PhysicsBody>();
     world.register::<Collider>();
@@ -144,6 +148,7 @@ fn main() -> ggez::GameResult {
     };
 
     main_state.add_shapes_from_lua_file("lua/init.lua");
+    main_state.lua_update();
 
     // Start the game
     ggez::event::run(ctx, event_loop, main_state)

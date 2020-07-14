@@ -4,9 +4,10 @@ use crate::resources::LuaRes;
 use crate::components::Name;
 use crate::resources::{self, ShapeInfo};
 
-use crate::Vector;
+use crate::{MechanicalWorld, Vector};
 use nphysics2d as np;
 
+use resources::Paused;
 use specs::prelude::*;
 
 pub trait LuaResExt {
@@ -130,6 +131,13 @@ impl<'a, 'b> MainState<'a, 'b> {
             let globals = lua_ctx.globals();
             if let Ok(true) = globals.get("ADD_SHAPES") {
                 self.process_lua_shapes(globals.get::<_, Vec<rlua::Table>>("shapes").unwrap());
+            }
+
+            if let Ok(paused) = globals.get::<_, bool>("PAUSED") {
+                self.world.insert::<Paused>(Paused(paused));
+            }
+            if let Ok(gravity) = globals.get::<_, f32>("GRAVITY") {
+                self.world.fetch_mut::<MechanicalWorld>().gravity.y = gravity;
             }
 
             globals.set("ADD_SHAPES", false).unwrap();

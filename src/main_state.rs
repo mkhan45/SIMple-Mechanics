@@ -76,6 +76,17 @@ impl<'a, 'b> MainState<'a, 'b> {
                 }
             });
         self.imgui_wrapper.sent_signals.clear();
+
+        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
+        lua.lock().unwrap().context(|lua_ctx| {
+            let globals = lua_ctx.globals();
+            globals
+                .set("GRAVITY", self.world.fetch::<MechanicalWorld>().gravity.y)
+                .unwrap();
+            globals
+                .set("PAUSED", self.world.fetch::<Paused>().0)
+                .unwrap();
+        });
     }
 
     pub fn draw_creation_gui(&self, mesh_builder: &mut ggez::graphics::MeshBuilder) {
