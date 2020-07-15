@@ -109,6 +109,30 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
 
         signal_button!("Clear Scene", UiSignal::DeleteAll, ui, signals);
         signal_button!("Pause", UiSignal::TogglePause, ui, signals);
+
+        ui.menu(im_str!("Load"), true, || {
+            let dir = std::path::Path::new("./lua");
+            match std::fs::read_dir(dir) {
+                Ok(dir_entries) => {
+                    dir_entries.for_each(|entry| {
+                        if let Ok(entry) = entry {
+                            let filename = entry.file_name().to_string_lossy().into_owned();
+                            let mut utf8_filename = String::new();
+                            filename.chars().for_each(|c| utf8_filename.push(c));
+                            let imstring_filename = ImString::new(utf8_filename);
+
+                            if &filename.as_str()[filename.len() - 4..] == ".lua" {
+                                let label = imstring_filename;
+                                if ui.small_button(&label) {
+                                    signals.push(UiSignal::LoadLua(filename));
+                                }
+                            }
+                        }
+                    });
+                }
+                Err(e) => println!("Error reading dir: {}", e),
+            }
+        });
     });
 }
 

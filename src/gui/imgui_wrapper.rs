@@ -39,6 +39,7 @@ pub enum UiSignal {
     DeleteShape(Entity),
     DeleteAll,
     TogglePause,
+    LoadLua(String),
 }
 
 pub struct ImGuiWrapper {

@@ -56,23 +56,15 @@ impl<'a, 'b> MainState<'a, 'b> {
                     self.imgui_wrapper.remove_sidemenu(entity);
                 }
                 UiSignal::DeleteAll => {
-                    let mut delete_buff: Vec<Entity> = Vec::new();
-
-                    {
-                        let physics_bodies = self.world.read_storage::<PhysicsBody>();
-                        let entities = self.world.entities();
-
-                        (&physics_bodies, &entities).join().for_each(|(_, entity)| {
-                            delete_buff.push(entity);
-                        });
-                    }
-
-                    delete_buff.iter().for_each(|entity| {
-                        self.delete_entity(*entity);
-                    });
+                    self.delete_all();
                 }
                 UiSignal::TogglePause => {
                     self.world.fetch_mut::<Paused>().toggle();
+                }
+                UiSignal::LoadLua(filename) => {
+                    self.delete_all();
+                    self.add_shapes_from_lua_file(format!("lua/{}", filename));
+                    self.lua_update();
                 }
             });
         self.imgui_wrapper.sent_signals.clear();
@@ -183,6 +175,23 @@ impl<'a, 'b> MainState<'a, 'b> {
         self.imgui_wrapper.remove_sidemenu(&entity);
 
         self.world.delete_entity(entity).unwrap();
+    }
+
+    pub fn delete_all(&mut self) {
+        let mut delete_buff: Vec<Entity> = Vec::new();
+
+        {
+            let physics_bodies = self.world.read_storage::<PhysicsBody>();
+            let entities = self.world.entities();
+
+            (&physics_bodies, &entities).join().for_each(|(_, entity)| {
+                delete_buff.push(entity);
+            });
+        }
+
+        delete_buff.iter().for_each(|entity| {
+            self.delete_entity(*entity);
+        });
     }
 }
 
