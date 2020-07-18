@@ -6,7 +6,7 @@ use nphysics2d as np;
 
 use crate::gui::imgui_wrapper::*;
 use crate::{
-    components::{Collider, PhysicsBody},
+    components::{Collider, Color, PhysicsBody},
     resources::{
         CreateElasticity, CreateFriction, CreateMass, CreateShapeCentered, CreateShapeStatic,
         FrameSteps, Resolution, ShapeInfo,
@@ -101,7 +101,8 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
                 std::mem::drop(mechanical_world);
                 let mut frame_steps_i32 = world.fetch_mut::<FrameSteps>().0 as i32;
                 ui.drag_int(im_str!("Steps Per Frame"), &mut frame_steps_i32)
-                    .min(0)
+                    .min(1)
+                    .max(250)
                     .build();
                 world.insert(FrameSteps(frame_steps_i32.try_into().unwrap()));
             }
@@ -223,6 +224,21 @@ pub fn make_sidemenu(
             .build();
         physics_body.set_linear_velocity(Vector::new(linear_vel[0], linear_vel[1]));
         physics_body.set_angular_velocity(angular_vel);
+
+        let mut colors_storage = world.write_storage::<Color>();
+        let mut color_arr = {
+            let color = colors_storage.get(entity).unwrap().0;
+            [color.r, color.g, color.b]
+        };
+        ui.drag_float3(im_str!("RGB"), &mut color_arr)
+            .min(0.0)
+            .max(1.0)
+            .speed(0.01)
+            .build();
+        let mut color = colors_storage.get_mut(entity).unwrap();
+        color.0.r = color_arr[0];
+        color.0.g = color_arr[1];
+        color.0.b = color_arr[2];
 
         signal_button!("Delete Shape", UiSignal::DeleteShape(entity), ui, signals);
     });

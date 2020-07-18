@@ -23,7 +23,7 @@ pub fn draw_circle(
         graphics::DrawMode::fill()
     };
 
-    mesh_builder.circle(drawmode, pos, rad, 0.01, color);
+    mesh_builder.circle(drawmode, pos, rad, 0.0010, color);
 
     mesh_builder.circle(
         drawmode,
@@ -32,7 +32,7 @@ pub fn draw_circle(
             pos[1] + rad * rot.sin() * 0.75,
         ],
         rad * 0.15,
-        0.01,
+        0.005,
         graphics::BLACK,
     );
 }
