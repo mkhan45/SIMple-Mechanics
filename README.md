@@ -11,3 +11,19 @@ Educational physics sim that uses graphs, FBDs, and other helpful stuff to teach
 - [ ] Free body diagrams
 - [ ] Convex polygons
 - [ ] Ropes
+- [ ] Lines
+
+## Controls
+- Left click to drag a shape
+- Right click to view editable properties of a shape
+- B to create a box, C to create a circle
+- Use the top bar GUI to 
+  - Create shapes
+  - Edit global variables
+  - Clear the scene
+  - Pause
+  - Load Lua files
+  
+## gifs
+![](demo.gif)
+![](demo2.gif)
