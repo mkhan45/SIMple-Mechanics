@@ -54,6 +54,9 @@ impl<'a> BodyBuilder<'a> {
             ShapeInfo::Polygon(Some(points)) => {
                 ShapeHandle::new(nc::shape::ConvexPolygon::try_new(points).unwrap())
             }
+            ShapeInfo::Polyline(Some(points)) => {
+                ShapeHandle::new(nc::shape::Polyline::new(points, None))
+            }
             _ => panic!("Invalid shape info without data"),
         };
 

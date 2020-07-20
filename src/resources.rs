@@ -28,6 +28,7 @@ pub enum ShapeInfo {
     Rectangle(Option<Vector>),
     Circle(Option<f32>),
     Polygon(Option<Vec<Point>>),
+    Polyline(Option<Vec<Point>>),
 }
 
 pub struct CreationData(pub Option<ShapeInfo>);

@@ -3,7 +3,7 @@ use ggez::{
     graphics,
     input::{
         keyboard::{KeyCode, KeyMods},
-        mouse::MouseButton,
+        mouse::MouseButton, self,
     },
 };
 
@@ -22,7 +22,7 @@ use crate::resources::{
     Paused, ShapeInfo,
 };
 
-use crate::gui::imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal};
+use crate::{Point, gui::imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal}};
 
 use graphics::DrawMode;
 use ncollide2d as nc;
@@ -370,6 +370,17 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         );
 
         self.world.insert(resources::MousePos(mouse_point));
+
+        {
+            let mut create_shape_data = self.world.fetch_mut::<CreationData>();
+            if input::mouse::button_pressed(ctx, MouseButton::Left) && ggez::timer::ticks(ctx) % 10 == 0 {
+                if let Some(ShapeInfo::Polyline(Some(points))) = create_shape_data.0.as_mut() {
+                    let mouse_pos = self.world.fetch::<resources::MousePos>().0;
+                    points.push(Point::new(mouse_pos.x, mouse_pos.y));
+                    dbg!(points.len());
+                }
+            }
+        }
     }
 
     fn mouse_button_down_event(
@@ -380,9 +391,9 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         y: f32,
     ) {
         self.imgui_wrapper.update_mouse_down((
-            btn == MouseButton::Left,
-            btn == MouseButton::Right,
-            btn == MouseButton::Middle,
+                btn == MouseButton::Left,
+                btn == MouseButton::Right,
+                btn == MouseButton::Middle,
         ));
 
         let screen_size = graphics::drawable_size(ctx);
@@ -428,7 +439,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         self.imgui_wrapper
                             .shown_menus
                             .retain(|menu| !matches!(menu, UiChoice::SideMenu(_)));
-                    }
+                        }
                 }
 
                 let create_shape_data = self.world.fetch::<CreationData>();
@@ -558,6 +569,21 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         self.world.insert(CreationData(None));
                     }
                     (ShapeInfo::Polygon(_), _) => {}
+                    (ShapeInfo::Polyline(Some(points)), _) => {
+                        BodyBuilder {
+                            restitution: self.world.fetch::<CreateElasticity>().0,
+                            friction: self.world.fetch::<CreateFriction>().0,
+                            status,
+                            ..BodyBuilder::from_world(
+                                &self.world,
+                                ShapeInfo::Polyline(Some(points.clone())),
+                                self.world.fetch::<CreateMass>().0,
+                            )
+                        }.create();
+                        std::mem::drop(create_shape_opt);
+                        self.world.insert(CreationData(None));
+                    }
+                    (ShapeInfo::Polyline(None), _) => unreachable!(),
                 }
             }
         }
@@ -576,11 +602,11 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             KeyCode::B => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Rectangle(None))));
-            }
+                }
             KeyCode::C => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Circle(None))));
-            }
+                }
             _ => {}
         }
 

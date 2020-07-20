@@ -30,7 +30,7 @@ pub struct MouseState {
 pub enum UiChoice {
     DefaultUI,
     SideMenu(Option<Entity>),
-    Graph,
+    Graph(Entity),
 }
 
 #[derive(Clone, PartialEq, Debug)]
