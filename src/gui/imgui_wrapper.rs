@@ -40,6 +40,7 @@ pub enum UiSignal {
     DeleteAll,
     TogglePause,
     LoadLua(String),
+    AddSpeedGraph(Entity),
 }
 
 pub struct ImGuiWrapper {

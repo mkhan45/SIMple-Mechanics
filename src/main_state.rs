@@ -66,6 +66,9 @@ impl<'a, 'b> MainState<'a, 'b> {
                     self.add_shapes_from_lua_file(format!("lua/{}", filename));
                     self.lua_update();
                 }
+                UiSignal::AddSpeedGraph(entity) => {
+                    todo!();
+                }
             });
         self.imgui_wrapper.sent_signals.clear();
 

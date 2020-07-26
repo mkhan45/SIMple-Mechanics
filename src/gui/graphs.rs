@@ -1,43 +1,38 @@
 use ggez::graphics::MeshBuilder;
 
-use std::rc::Rc;
-
 pub trait Graph {
-    fn points(&self) -> Rc<Vec<[f32; 2]>>;
     fn draw(&self, builder: &mut MeshBuilder);
 }
 
 pub trait LineGraph {
-    fn y_vels(&self) -> &[f32];
+    fn add_val(&mut self, val: f32);
+    fn points(&self) -> &[[f32; 2]];
 }
 
 impl Graph for dyn LineGraph {
-    fn points(&self) -> Rc<Vec<[f32; 2]>> {
-        let y_vels = self.y_vels();
-        let num_points = y_vels.len();
-        let incr_width = 10.0 / num_points as f32;
-        let x_vels = (0..num_points).map(|i| i as f32 * incr_width);
-
-        let points = x_vels.zip(y_vels.iter()).map(|(x, y)| [x, *y])
-            .collect::<Vec<[f32; 2]>>();
-
-        Rc::new(points)
-    }
-
     fn draw(&self, builder: &mut MeshBuilder) {
-        builder.line(self.points().as_slice(), 0.1, ggez::graphics::Color::new(1.0, 0.0, 0.0, 1.0)).unwrap();
+        builder.line(self.points(), 0.1, ggez::graphics::Color::new(1.0, 0.0, 0.0, 1.0)).unwrap();
     }
 }
 
 macro_rules! create_linegraph {
     ($structname:ident) => {
         pub struct $structname {
-            pub data: Vec<f32>,
+            pub data: Vec<[f32; 2]>,
         }
 
         impl LineGraph for $structname {
-            fn y_vels(&self) -> &[f32] {
+            fn points(&self) -> &[[f32; 2]] {
                 self.data.as_slice()
+            }
+
+            fn add_val(&mut self, val: f32) {
+                let num_vals = self.data.len() + 1;
+                let step_incr = 10.0 / num_vals as f32;
+                self.data.iter_mut().enumerate().for_each(|(i, [_, y])| {
+                    *y = step_incr * i as f32;
+                });
+                self.data.push([val, 10.0]);
             }
         }
     }

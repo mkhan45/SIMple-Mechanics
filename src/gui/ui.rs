@@ -246,6 +246,7 @@ pub fn make_sidemenu(
         color.0.g = color_arr[1];
         color.0.b = color_arr[2];
 
+        signal_button!("Graph Speed", UiSignal::AddSpeedGraph(entity), ui, signals);
         signal_button!("Delete Shape", UiSignal::DeleteShape(entity), ui, signals);
     });
 }
