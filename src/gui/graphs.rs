@@ -1,6 +1,6 @@
 use ggez::graphics::MeshBuilder;
-use specs::Component;
 use specs::storage::BTreeStorage;
+use specs::Component;
 
 pub trait Graph {
     fn draw(&self, builder: &mut MeshBuilder);
@@ -13,7 +13,13 @@ pub trait LineGraph {
 
 impl Graph for dyn LineGraph {
     fn draw(&self, builder: &mut MeshBuilder) {
-        builder.line(self.points(), 0.1, ggez::graphics::Color::new(1.0, 0.0, 0.0, 1.0)).unwrap();
+        builder
+            .line(
+                self.points(),
+                0.1,
+                ggez::graphics::Color::new(1.0, 0.0, 0.0, 1.0),
+            )
+            .unwrap();
     }
 }
 
@@ -47,7 +53,7 @@ macro_rules! create_linegraph {
                 self.data.push([val, 10.0]);
             }
         }
-    }
+    };
 }
 
 create_linegraph!(SpeedGraph);

@@ -1,13 +1,14 @@
 #![allow(clippy::type_complexity)]
 use specs::prelude::*;
 
-pub struct SelectedMoveSys;
-
 use crate::{BodySet, MechanicalWorld, RigidBody, Selected};
 
 use crate::components::*;
+use crate::gui::graphs::{LineGraph, SpeedGraph};
 
 use crate::resources::*;
+
+pub struct SelectedMoveSys;
 
 impl<'a> System<'a> for SelectedMoveSys {
     type SystemData = (
@@ -38,6 +39,33 @@ impl<'a> System<'a> for SelectedMoveSys {
                 let physics_step = mechanical_world.as_ref().unwrap().timestep();
 
                 rigid_body.set_linear_velocity(new_vel / physics_step);
+            });
+    }
+}
+
+pub struct SpeedGraphSys;
+
+impl<'a> System<'a> for SpeedGraphSys {
+    type SystemData = (
+        WriteStorage<'a, SpeedGraph>,
+        ReadStorage<'a, PhysicsBody>,
+        Option<Read<'a, BodySet>>,
+    );
+
+    // TODO add a limit to length of graph
+    fn run(&mut self, (mut speed_graphs, physics_bodies, body_set): Self::SystemData) {
+        (&mut speed_graphs, &physics_bodies)
+            .join()
+            .for_each(|(graph, physics_body)| {
+                let rigid_body = body_set
+                    .as_ref()
+                    .unwrap()
+                    .get(physics_body.body_handle)
+                    .unwrap()
+                    .downcast_ref::<RigidBody>()
+                    .unwrap();
+                let speed = rigid_body.velocity().linear.norm();
+                graph.add_val(speed);
             });
     }
 }

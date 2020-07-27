@@ -2,8 +2,9 @@ use ggez::event::EventHandler;
 use ggez::{
     graphics,
     input::{
+        self,
         keyboard::{KeyCode, KeyMods},
-        mouse::MouseButton, self,
+        mouse::MouseButton,
     },
 };
 
@@ -22,7 +23,13 @@ use crate::resources::{
     Paused, ShapeInfo,
 };
 
-use crate::{Point, gui::{graphs::SpeedGraph, imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal}}};
+use crate::{
+    gui::{
+        graphs::SpeedGraph,
+        imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal},
+    },
+    Point,
+};
 
 use graphics::DrawMode;
 use ncollide2d as nc;
@@ -68,7 +75,9 @@ impl<'a, 'b> MainState<'a, 'b> {
                 }
                 UiSignal::AddSpeedGraph(entity) => {
                     let mut speedgraph_storages = self.world.write_storage::<SpeedGraph>();
-                    speedgraph_storages.insert(*entity, SpeedGraph::default()).unwrap();
+                    speedgraph_storages
+                        .insert(*entity, SpeedGraph::default())
+                        .unwrap();
                 }
             });
         self.imgui_wrapper.sent_signals.clear();
@@ -377,7 +386,9 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
         {
             let mut create_shape_data = self.world.fetch_mut::<CreationData>();
-            if input::mouse::button_pressed(ctx, MouseButton::Left) && ggez::timer::ticks(ctx) % 10 == 0 {
+            if input::mouse::button_pressed(ctx, MouseButton::Left)
+                && ggez::timer::ticks(ctx) % 10 == 0
+            {
                 if let Some(ShapeInfo::Polyline(Some(points))) = create_shape_data.0.as_mut() {
                     let mouse_pos = self.world.fetch::<resources::MousePos>().0;
                     points.push(Point::new(mouse_pos.x, mouse_pos.y));
@@ -395,9 +406,9 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         y: f32,
     ) {
         self.imgui_wrapper.update_mouse_down((
-                btn == MouseButton::Left,
-                btn == MouseButton::Right,
-                btn == MouseButton::Middle,
+            btn == MouseButton::Left,
+            btn == MouseButton::Right,
+            btn == MouseButton::Middle,
         ));
 
         let screen_size = graphics::drawable_size(ctx);
@@ -443,7 +454,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         self.imgui_wrapper
                             .shown_menus
                             .retain(|menu| !matches!(menu, UiChoice::SideMenu(_)));
-                        }
+                    }
                 }
 
                 let create_shape_data = self.world.fetch::<CreationData>();
@@ -583,7 +594,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                                 ShapeInfo::Polyline(Some(points.clone())),
                                 self.world.fetch::<CreateMass>().0,
                             )
-                        }.create();
+                        }
+                        .create();
                         std::mem::drop(create_shape_opt);
                         self.world.insert(CreationData(None));
                     }
@@ -606,11 +618,11 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             KeyCode::B => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Rectangle(None))));
-                }
+            }
             KeyCode::C => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Circle(None))));
-                }
+            }
             _ => {}
         }
 

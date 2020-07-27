@@ -8,8 +8,8 @@ mod resources;
 mod lua;
 
 mod gui;
-use gui::imgui_wrapper::ImGuiWrapper;
 use gui::graphs::SpeedGraph;
+use gui::imgui_wrapper::ImGuiWrapper;
 
 use ncollide2d as nc;
 use nphysics2d as np;
@@ -34,7 +34,7 @@ use components::*;
 
 mod systems;
 use resources::HiDPIFactor;
-use systems::SelectedMoveSys;
+use systems::{SelectedMoveSys, SpeedGraphSys};
 
 const SCREEN_X: f32 = 20.0;
 const SCREEN_Y: f32 = 20.0;
@@ -129,6 +129,7 @@ fn main() -> ggez::GameResult {
 
     let mut dispatcher = DispatcherBuilder::new()
         .with(SelectedMoveSys, "selected_move_sys", &[])
+        .with(SpeedGraphSys, "speed_graph_sys", &[])
         .build();
 
     dispatcher.setup(&mut world);
