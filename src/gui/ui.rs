@@ -6,7 +6,7 @@ use nphysics2d as np;
 
 use crate::gui::imgui_wrapper::*;
 use crate::{
-    components::{Collider, Color, PhysicsBody},
+    components::{Collider, Color, Name, PhysicsBody},
     resources::{
         CreateElasticity, CreateFriction, CreateMass, CreateShapeCentered, CreateShapeStatic,
         FrameSteps, Resolution, ShapeInfo,
@@ -159,6 +159,7 @@ pub fn make_sidemenu(
             .downcast_mut::<RigidBody>()
             .unwrap()
     };
+    let mut names = world.write_storage::<Name>();
 
     let mut collider_set = world.fetch_mut::<ColliderSet>();
     let body_collider = {
@@ -183,6 +184,16 @@ pub fn make_sidemenu(
 
     win.build(ui, || {
         ui.text(im_str!("\nObject Info"));
+
+        let mut name_buff = match names.get(entity) {
+            Some(name) => ImString::new(name.0.clone()),
+            None => ImString::new(""),
+        };
+        ui.input_text(im_str!("Name"), &mut name_buff).build();
+        if name_buff.to_str() != "" {
+            let name = name_buff.to_string();
+            names.insert(entity, Name(name)).unwrap();
+        }
 
         let mut mass = physics_body.augmented_mass().linear;
         ui.drag_float(im_str!("Mass"), &mut mass)

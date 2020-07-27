@@ -2,13 +2,17 @@ use ggez::graphics::MeshBuilder;
 use specs::storage::BTreeStorage;
 use specs::Component;
 
+use csv;
+
 pub trait Graph {
     fn draw(&self, builder: &mut MeshBuilder);
+    fn serialize_csv(&self);
 }
 
 pub trait LineGraph {
     fn add_val(&mut self, val: f32);
     fn points(&self) -> &[[f32; 2]];
+    fn name(&self) -> String;
 }
 
 impl Graph for dyn LineGraph {
@@ -21,10 +25,20 @@ impl Graph for dyn LineGraph {
             )
             .unwrap();
     }
+
+    fn serialize_csv(&self) {
+        let mut writer = csv::Writer::from_writer(std::io::stdout());
+
+        writer.write_record(&[self.name()]).unwrap();
+        self.points().iter().for_each(|[_, val]| {
+            writer.write_record(&[val.to_string()]).unwrap();
+        });
+        writer.flush().unwrap();
+    }
 }
 
 macro_rules! create_linegraph {
-    ($structname:ident) => {
+    ($structname:ident, $name:expr) => {
         #[derive(Debug, Clone, Component)]
         #[storage(BTreeStorage)]
         pub struct $structname {
@@ -52,11 +66,15 @@ macro_rules! create_linegraph {
                 });
                 self.data.push([val, 10.0]);
             }
+
+            fn name(&self) -> String {
+                $name.to_string()
+            }
         }
     };
 }
 
-create_linegraph!(SpeedGraph);
-create_linegraph!(RotVelGraph);
-create_linegraph!(XPosGraph);
-create_linegraph!(YPosGraph);
+create_linegraph!(SpeedGraph, "Speed");
+create_linegraph!(RotVelGraph, "Rotational Velocity");
+create_linegraph!(XPosGraph, "X Position");
+create_linegraph!(YPosGraph, "Y Position");
