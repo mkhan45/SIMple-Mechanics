@@ -9,6 +9,7 @@ mod lua;
 
 mod gui;
 use gui::imgui_wrapper::ImGuiWrapper;
+use gui::graphs::SpeedGraph;
 
 use ncollide2d as nc;
 use nphysics2d as np;
@@ -124,6 +125,7 @@ fn main() -> ggez::GameResult {
     world.register::<InfoDisplayed>();
     world.register::<Color>();
     world.register::<Name>();
+    world.register::<SpeedGraph>();
 
     let mut dispatcher = DispatcherBuilder::new()
         .with(SelectedMoveSys, "selected_move_sys", &[])

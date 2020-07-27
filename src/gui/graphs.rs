@@ -1,4 +1,6 @@
 use ggez::graphics::MeshBuilder;
+use specs::Component;
+use specs::storage::BTreeStorage;
 
 pub trait Graph {
     fn draw(&self, builder: &mut MeshBuilder);
@@ -17,8 +19,18 @@ impl Graph for dyn LineGraph {
 
 macro_rules! create_linegraph {
     ($structname:ident) => {
+        #[derive(Debug, Clone, Component)]
+        #[storage(BTreeStorage)]
         pub struct $structname {
             pub data: Vec<[f32; 2]>,
+        }
+
+        impl Default for $structname {
+            fn default() -> Self {
+                $structname {
+                    data: Vec::with_capacity(100),
+                }
+            }
         }
 
         impl LineGraph for $structname {

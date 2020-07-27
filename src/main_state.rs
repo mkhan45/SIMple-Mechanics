@@ -22,7 +22,7 @@ use crate::resources::{
     Paused, ShapeInfo,
 };
 
-use crate::{Point, gui::imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal}};
+use crate::{Point, gui::{graphs::SpeedGraph, imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal}}};
 
 use graphics::DrawMode;
 use ncollide2d as nc;
@@ -67,7 +67,8 @@ impl<'a, 'b> MainState<'a, 'b> {
                     self.lua_update();
                 }
                 UiSignal::AddSpeedGraph(entity) => {
-                    todo!();
+                    let mut speedgraph_storages = self.world.write_storage::<SpeedGraph>();
+                    speedgraph_storages.insert(*entity, SpeedGraph::default()).unwrap();
                 }
             });
         self.imgui_wrapper.sent_signals.clear();
