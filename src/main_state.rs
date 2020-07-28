@@ -400,7 +400,6 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 if let Some(ShapeInfo::Polyline(Some(points))) = create_shape_data.0.as_mut() {
                     let mouse_pos = self.world.fetch::<resources::MousePos>().0;
                     points.push(Point::new(mouse_pos.x, mouse_pos.y));
-                    dbg!(points.len());
                 }
             }
         }
@@ -467,7 +466,6 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
                 let create_shape_data = self.world.fetch::<CreationData>();
                 if let Some(ShapeInfo::Polygon(Some(_points))) = &create_shape_data.0.clone() {
-                    dbg!();
                     let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
                     BodyBuilder {
                         translation: start_pos,

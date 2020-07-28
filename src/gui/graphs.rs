@@ -15,7 +15,7 @@ pub trait Graph {
 
 pub trait LineGraph {
     fn add_val(&mut self, val: f32);
-    fn points(&self) -> &[[f32; 2]];
+    fn points(&self) -> (&[[f32; 2]], &[[f32; 2]]);
     fn name(&self) -> String;
     fn shown(&self) -> bool;
     fn max_len(&self) -> usize;
@@ -25,39 +25,37 @@ impl Graph for dyn LineGraph {
     fn draw(&self, builder: &mut MeshBuilder) {
         use std::f32::{INFINITY, NEG_INFINITY};
 
-        if self.points().len() < 3 {
-            return;
-        }
-
-        let (min, max) = self
-            .points()
-            .iter()
+        let (s0, s1) = self.points();
+        let (min, max) = 
+            s0.iter().chain(s1.iter())
             .fold((INFINITY, NEG_INFINITY), |(min, max), [_, v]| {
                 (min.min(*v), max.max(*v))
             });
-
         let midpoint = (min + max) / 2.0;
         let scale_fac = 8.0 / (max - min).max(1.0e-10);
 
-        builder
-            .line(
-                dbg!(self
-                    .points()
+        if s0.len() + s1.len() >= 3 {
+            builder
+                .line(
+                    s0
                     .iter()
+                    .chain(s1.iter())
                     .map(|[x, v]| [*x, 5.5 - (v - midpoint) * scale_fac])
                     .collect::<Vec<[f32; 2]>>()
-                    .as_slice()),
-                0.1,
-                ggez::graphics::Color::new(1.0, 0.0, 0.0, 1.0),
-            )
-            .unwrap();
+                    .as_slice(),
+                    0.1,
+                    ggez::graphics::Color::new(1.0, 0.0, 0.0, 1.0),
+                )
+                .unwrap();
+        }
     }
 
     fn serialize_csv(&self) {
         let mut writer = csv::Writer::from_writer(std::io::stdout());
 
         writer.write_record(&[self.name()]).unwrap();
-        self.points().iter().for_each(|[_, val]| {
+        let (s1, s2) = self.points();
+        s1.iter().chain(s2.iter()).for_each(|[_, val]| {
             writer.write_record(&[val.to_string()]).unwrap();
         });
         writer.flush().unwrap();
@@ -85,8 +83,8 @@ macro_rules! create_linegraph {
         }
 
         impl LineGraph for $structname {
-            fn points(&self) -> &[[f32; 2]] {
-                &self.data.as_slices().0
+            fn points(&self) -> (&[[f32; 2]], &[[f32; 2]]) {
+                self.data.as_slices()
             }
 
             fn add_val(&mut self, val: f32) {
@@ -102,7 +100,6 @@ macro_rules! create_linegraph {
                     self.data.pop_front();
                     self.data.push_back([10.0, val]);
                 }
-                self.data.make_contiguous();
             }
 
             fn name(&self) -> String {
