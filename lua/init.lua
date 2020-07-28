@@ -66,9 +66,9 @@ function update()
    --       print(v:id())
    --    end
    -- end
-   -- if (tick % 60 == 0 and tick > 0) then
-   --    print(string.format("FPS: %s, Mouse Pos: %.4f, %.4f", FPS, MOUSE_X, MOUSE_Y))
-   -- end
+   if (tick % 60 == 0 and tick > 0) then
+      print(string.format("FPS: %s, Mouse Pos: %.4f, %.4f", FPS, MOUSE_X, MOUSE_Y))
+   end
 
    -- if (tick % 90 == 0 and tick < 90 * 10) then
    --    for i = 1, width do
@@ -76,6 +76,6 @@ function update()
    --       color = {r = tick % 255, g = 255 - (tick % 255), b = math.floor(i / width * 255)}})
    --    end
    -- end
-   -- tick = tick + 1
+   tick = tick + 1
    -- ADD_SHAPES = true
 end

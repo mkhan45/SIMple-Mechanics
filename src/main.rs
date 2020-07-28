@@ -1,3 +1,4 @@
+#![feature(deque_make_contiguous)]
 use specs::prelude::*;
 
 mod main_state;

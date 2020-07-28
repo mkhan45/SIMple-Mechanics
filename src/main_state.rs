@@ -338,6 +338,14 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         }
 
         {
+            let graph_builder = &mut graphics::MeshBuilder::new();
+            self.draw_graphs(graph_builder);
+            if let Ok(mesh) = graph_builder.build(ctx) {
+                let _ = graphics::draw(ctx, &mesh, graphics::DrawParam::new());
+            }
+        }
+
+        {
             let hidpi_factor = self.world.fetch::<HiDPIFactor>().0;
             self.imgui_wrapper
                 .render(ctx, hidpi_factor, &mut self.world);
