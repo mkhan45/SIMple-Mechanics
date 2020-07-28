@@ -22,8 +22,11 @@ before_script:
 test:cargo:
   script:
     - rustc --version && cargo --version  # Print version info for debugging
-    - cargo test --workspace --verbose
+    - cargo build --release
   artifacts:
     paths:
       - target/release/physics-engine-v2
     expire_in: 1 week
+  cache:
+    paths:
+      - target/
