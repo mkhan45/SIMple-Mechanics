@@ -15,6 +15,7 @@ image: "rust:latest"
 # You will often need this when you (or any of your dependencies) depends on C code.
 before_script:
 #   - apt-get update -yqq
+  - apt-get update -yqq
   - apt-get install -yqq libasound2-dev
 
 # Use cargo to test the project
