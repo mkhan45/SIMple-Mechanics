@@ -16,7 +16,7 @@ image: "rust:latest"
 before_script:
 #   - apt-get update -yqq
   - apt-get update -yqq
-  - apt-get install -yqq libasound2-dev
+  - apt-get install -yqq libasound2-dev libudev-dev pkg-config
 
 # Use cargo to test the project
 test:cargo:
