@@ -1,15 +1,15 @@
-use ggez::graphics::MeshBuilder;
+use ggez::graphics::{self, MeshBuilder};
 use specs::storage::BTreeStorage;
 use specs::Component;
 
 use std::collections::VecDeque;
 
-use crate::{main_state::MainState, resources::GraphMinMax};
+use crate::{components, main_state::MainState, resources::GraphMinMax};
 
 // use csv;
 
 pub trait Graph {
-    fn draw(&self, builder: &mut MeshBuilder, min_max: Option<(f32, f32)>);
+    fn draw(&self, builder: &mut MeshBuilder, color: graphics::Color, min_max: Option<(f32, f32)>);
     fn serialize_csv(&self);
 }
 
@@ -22,7 +22,7 @@ pub trait LineGraph {
 }
 
 impl Graph for dyn LineGraph {
-    fn draw(&self, builder: &mut MeshBuilder, min_max: Option<(f32, f32)>) {
+    fn draw(&self, builder: &mut MeshBuilder, color: graphics::Color, min_max: Option<(f32, f32)>) {
         use std::f32::{INFINITY, NEG_INFINITY};
 
         let (s0, s1) = self.points();
@@ -45,7 +45,7 @@ impl Graph for dyn LineGraph {
                         .collect::<Vec<[f32; 2]>>()
                         .as_slice(),
                     0.1,
-                    ggez::graphics::Color::new(1.0, 0.0, 0.0, 1.0),
+                    color,
                 )
                 .unwrap();
         }
@@ -124,10 +124,11 @@ impl<'a, 'b> MainState<'a, 'b> {
         use specs::prelude::*;
 
         let speed_graphs = self.world.read_storage::<SpeedGraph>();
+        let colors = self.world.read_storage::<components::Color>();
         let min_max = self.world.fetch::<GraphMinMax>();
 
         let mut first_iter = true;
-        speed_graphs.join().for_each(|graph| {
+        (&speed_graphs, &colors).join().for_each(|(graph, color)| {
             if graph.shown {
                 if first_iter {
                     first_iter = false;
@@ -141,6 +142,7 @@ impl<'a, 'b> MainState<'a, 'b> {
                 Graph::draw(
                     graph as &dyn LineGraph,
                     builder,
+                    color.0,
                     Some((min_max.0, min_max.1)),
                 );
             }
