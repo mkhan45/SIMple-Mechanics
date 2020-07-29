@@ -63,3 +63,6 @@ impl Paused {
         self.0 = !self.0;
     }
 }
+
+#[derive(Copy, Clone, Default)]
+pub struct GraphMinMax(pub f32, pub f32);

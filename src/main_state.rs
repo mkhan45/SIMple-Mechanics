@@ -221,7 +221,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             self.lua_update();
         }
 
-        {
+        if !self.world.fetch::<Paused>().0 {
             self.dispatcher.dispatch(&self.world);
         }
 

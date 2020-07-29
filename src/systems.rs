@@ -43,8 +43,27 @@ impl<'a> System<'a> for SelectedMoveSys {
     }
 }
 
-pub struct SpeedGraphSys;
+pub struct MinMaxGraphSys;
+impl<'a> System<'a> for MinMaxGraphSys {
+    type SystemData = (ReadStorage<'a, SpeedGraph>, Write<'a, GraphMinMax>);
 
+    fn run(&mut self, (speed_graphs, mut min_max): Self::SystemData) {
+        let (mut min, mut max) = (std::f32::INFINITY, std::f32::NEG_INFINITY);
+
+        speed_graphs.join().for_each(|graph| {
+            let (s0, s1) = graph.points();
+            s0.iter().chain(s1.iter()).for_each(|[_, v]| {
+                min = min.min(*v);
+                max = max.max(*v);
+            });
+        });
+
+        min_max.0 = min;
+        min_max.1 = max;
+    }
+}
+
+pub struct SpeedGraphSys;
 impl<'a> System<'a> for SpeedGraphSys {
     type SystemData = (
         WriteStorage<'a, SpeedGraph>,

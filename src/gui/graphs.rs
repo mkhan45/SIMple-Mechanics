@@ -4,12 +4,12 @@ use specs::Component;
 
 use std::collections::VecDeque;
 
-use crate::main_state::MainState;
+use crate::{main_state::MainState, resources::GraphMinMax};
 
 // use csv;
 
 pub trait Graph {
-    fn draw(&self, builder: &mut MeshBuilder);
+    fn draw(&self, builder: &mut MeshBuilder, min_max: Option<(f32, f32)>);
     fn serialize_csv(&self);
 }
 
@@ -22,27 +22,28 @@ pub trait LineGraph {
 }
 
 impl Graph for dyn LineGraph {
-    fn draw(&self, builder: &mut MeshBuilder) {
+    fn draw(&self, builder: &mut MeshBuilder, min_max: Option<(f32, f32)>) {
         use std::f32::{INFINITY, NEG_INFINITY};
 
         let (s0, s1) = self.points();
-        let (min, max) = 
-            s0.iter().chain(s1.iter())
-            .fold((INFINITY, NEG_INFINITY), |(min, max), [_, v]| {
-                (min.min(*v), max.max(*v))
-            });
+        let (min, max) = min_max.unwrap_or_else(|| {
+            s0.iter()
+                .chain(s1.iter())
+                .fold((INFINITY, NEG_INFINITY), |(min, max), [_, v]| {
+                    (min.min(*v), max.max(*v))
+                })
+        });
         let midpoint = (min + max) / 2.0;
         let scale_fac = 8.0 / (max - min).max(1.0e-10);
 
         if s0.len() + s1.len() >= 3 {
             builder
                 .line(
-                    s0
-                    .iter()
-                    .chain(s1.iter())
-                    .map(|[x, v]| [*x, 5.5 - (v - midpoint) * scale_fac])
-                    .collect::<Vec<[f32; 2]>>()
-                    .as_slice(),
+                    s0.iter()
+                        .chain(s1.iter())
+                        .map(|[x, v]| [*x, 5.5 - (v - midpoint) * scale_fac])
+                        .collect::<Vec<[f32; 2]>>()
+                        .as_slice(),
                     0.1,
                     ggez::graphics::Color::new(1.0, 0.0, 0.0, 1.0),
                 )
@@ -123,6 +124,7 @@ impl<'a, 'b> MainState<'a, 'b> {
         use specs::prelude::*;
 
         let speed_graphs = self.world.read_storage::<SpeedGraph>();
+        let min_max = self.world.fetch::<GraphMinMax>();
 
         let mut first_iter = true;
         speed_graphs.join().for_each(|graph| {
@@ -136,7 +138,11 @@ impl<'a, 'b> MainState<'a, 'b> {
                     );
                     builder.rectangle(DrawMode::fill(), Rect::new(0.0, 0.0, 10.0, 10.0), BLACK);
                 }
-                Graph::draw(graph as &dyn LineGraph, builder);
+                Graph::draw(
+                    graph as &dyn LineGraph,
+                    builder,
+                    Some((min_max.0, min_max.1)),
+                );
             }
         });
     }

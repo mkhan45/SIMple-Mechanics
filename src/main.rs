@@ -33,6 +33,7 @@ mod components;
 use components::*;
 
 mod systems;
+use crate::systems::MinMaxGraphSys;
 use resources::HiDPIFactor;
 use systems::{SelectedMoveSys, SpeedGraphSys};
 
@@ -75,6 +76,11 @@ fn main() -> ggez::GameResult {
 
     world.insert(resources::FrameSteps(1));
     world.insert(resources::Paused(false));
+
+    world.insert(resources::GraphMinMax(
+        std::f32::NEG_INFINITY,
+        std::f32::INFINITY,
+    ));
 
     {
         let dimensions = event_loop.get_primary_monitor().get_dimensions();
@@ -130,6 +136,7 @@ fn main() -> ggez::GameResult {
     let mut dispatcher = DispatcherBuilder::new()
         .with(SelectedMoveSys, "selected_move_sys", &[])
         .with(SpeedGraphSys, "speed_graph_sys", &[])
+        .with(MinMaxGraphSys, "graph_minmax_sys", &["speed_graph_sys"])
         .build();
 
     dispatcher.setup(&mut world);
