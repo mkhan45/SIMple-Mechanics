@@ -1,5 +1,5 @@
 # physics-v2
-![build](https://gitlab.com/mkhan45/physics-v2/badges/master/pipeline.svg?key_text=build&style=flat-square)
+[![](https://gitlab.com/mkhan45/physics-v2/badges/master/pipeline.svg?key_text=build&style=flat-square)](https://gitlab.com/mkhan45/physics-v2/-/pipelines)
 
 Educational physics sim that uses graphs, FBDs, and other helpful stuff to teach physics. Also see my [gravity sim](https://github.com/mkhan45/gravity-sim-v2)
 
