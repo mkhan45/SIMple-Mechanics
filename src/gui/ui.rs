@@ -140,6 +140,8 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
                 Err(e) => println!("Error reading dir: {}", e),
             }
         });
+
+        signal_button!("Serialize Graphs", UiSignal::SerializeGraphs, ui, signals);
     });
 }
 

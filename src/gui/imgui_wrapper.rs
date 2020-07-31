@@ -42,6 +42,7 @@ pub enum UiSignal {
     LoadLua(String),
     AddSpeedGraph(Entity),
     AddRotVelGraph(Entity),
+    SerializeGraphs,
 }
 
 pub struct ImGuiWrapper {

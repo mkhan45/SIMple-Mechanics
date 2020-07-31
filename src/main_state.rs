@@ -93,6 +93,7 @@ impl<'a, 'b> MainState<'a, 'b> {
                 UiSignal::AddRotVelGraph(entity) => {
                     add_graph_variant!(RotVelGraph, entity);
                 }
+                UiSignal::SerializeGraphs => {}
             });
         self.imgui_wrapper.sent_signals.clear();
 

@@ -8,6 +8,7 @@ use crate::{
     components,
     main_state::MainState,
     resources::{GraphMinMax, GraphPosData},
+    RigidBody,
 };
 use graphics::Rect;
 
@@ -15,7 +16,7 @@ use graphics::Rect;
 
 pub trait Graph {
     fn draw(&self, builder: &mut MeshBuilder, color: graphics::Color, min_max: Option<(f32, f32)>);
-    fn serialize_csv(&self);
+    fn access_field(&self, body: &RigidBody);
 }
 
 pub trait LineGraph {
@@ -24,6 +25,7 @@ pub trait LineGraph {
     fn name(&self) -> String;
     fn shown(&self) -> bool;
     fn max_len(&self) -> usize;
+    fn access_field(&self, rigid_body: &RigidBody) -> f32;
 }
 
 impl Graph for dyn LineGraph {
@@ -56,20 +58,13 @@ impl Graph for dyn LineGraph {
         }
     }
 
-    fn serialize_csv(&self) {
-        let mut writer = csv::Writer::from_writer(std::io::stdout());
-
-        writer.write_record(&[self.name()]).unwrap();
-        let (s1, s2) = self.points();
-        s1.iter().chain(s2.iter()).for_each(|[_, val]| {
-            writer.write_record(&[val.to_string()]).unwrap();
-        });
-        writer.flush().unwrap();
+    fn access_field(&self, rigid_body: &RigidBody) {
+        self.access_field(rigid_body);
     }
 }
 
 macro_rules! create_linegraph {
-    ($structname:ident, $name:expr) => {
+    ($structname:ident, $name:expr, $access_closure:expr) => {
         #[derive(Debug, Clone, Component)]
         #[storage(BTreeStorage)]
         pub struct $structname {
@@ -119,14 +114,31 @@ macro_rules! create_linegraph {
             fn max_len(&self) -> usize {
                 self.max_len
             }
+
+            fn access_field(&self, rigid_body: &RigidBody) -> f32 {
+                $access_closure(rigid_body)
+            }
         }
     };
 }
 
-create_linegraph!(SpeedGraph, "Speed");
-create_linegraph!(RotVelGraph, "Rotational Velocity");
-create_linegraph!(XPosGraph, "X Position");
-create_linegraph!(YPosGraph, "Y Position");
+create_linegraph!(SpeedGraph, "Speed", |rigid_body: &RigidBody| rigid_body
+    .velocity()
+    .linear
+    .norm());
+create_linegraph!(
+    RotVelGraph,
+    "Rotational Velocity",
+    |rigid_body: &RigidBody| rigid_body.velocity().angular
+);
+create_linegraph!(XPosGraph, "X Position", |rigid_body: &RigidBody| rigid_body
+    .position()
+    .translation
+    .x);
+create_linegraph!(YPosGraph, "Y Position", |rigid_body: &RigidBody| rigid_body
+    .position()
+    .translation
+    .y);
 
 impl<'a, 'b> MainState<'a, 'b> {
     pub fn draw_graphs(&self, builder: &mut MeshBuilder) {

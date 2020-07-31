@@ -4,7 +4,7 @@ use specs::prelude::*;
 use crate::{BodySet, MechanicalWorld, RigidBody, Selected};
 
 use crate::components::*;
-use crate::gui::graphs::{LineGraph, RotVelGraph, SpeedGraph};
+use crate::gui::graphs::{LineGraph, RotVelGraph, SpeedGraph, XPosGraph, YPosGraph};
 
 use crate::{resources::*, Vector};
 
@@ -107,40 +107,42 @@ impl<'a> System<'a> for GraphTransformSys {
     }
 }
 
-macro_rules! make_graphsys {
-    ( $sys:ident, $graphcomp:ident, $access_fn:expr ) => {
-        pub struct $sys;
-        impl<'a> System<'a> for $sys {
-            type SystemData = (
-                WriteStorage<'a, $graphcomp>,
-                ReadStorage<'a, PhysicsBody>,
-                Option<Read<'a, BodySet>>,
-            );
-
-            // TODO add a limit to length of graph
-            fn run(&mut self, (mut speed_graphs, physics_bodies, body_set): Self::SystemData) {
-                (&mut speed_graphs, &physics_bodies)
-                    .join()
-                    .for_each(|(graph, physics_body)| {
-                        let rigid_body = body_set
-                            .as_ref()
-                            .unwrap()
-                            .get(physics_body.body_handle)
-                            .unwrap()
-                            .downcast_ref::<RigidBody>()
-                            .unwrap();
-                        // let speed = rigid_body.velocity().linear.norm();
-                        let val = $access_fn(rigid_body);
-                        graph.add_val(val);
-                    });
-            }
-        }
-    };
+#[derive(Default)]
+pub struct LineGraphSys<T>
+where
+    T: LineGraph + Component,
+{
+    pub phantom_data: std::marker::PhantomData<T>,
 }
 
-make_graphsys!(SpeedGraphSys, SpeedGraph, |rigid_body: &RigidBody| {
-    rigid_body.velocity().linear.norm()
-});
-make_graphsys!(RotVelGraphSys, RotVelGraph, |rigid_body: &RigidBody| {
-    rigid_body.velocity().angular
-});
+impl<'a, T> System<'a> for LineGraphSys<T>
+where
+    T: LineGraph + Component,
+{
+    type SystemData = (
+        WriteStorage<'a, T>,
+        ReadStorage<'a, PhysicsBody>,
+        Option<Read<'a, BodySet>>,
+    );
+
+    fn run(&mut self, (mut graphs, physics_bodies, body_set): Self::SystemData) {
+        (&mut graphs, &physics_bodies)
+            .join()
+            .for_each(|(graph, physics_body)| {
+                let rigid_body = body_set
+                    .as_ref()
+                    .unwrap()
+                    .get(physics_body.body_handle)
+                    .unwrap()
+                    .downcast_ref::<RigidBody>()
+                    .unwrap();
+                let val = graph.access_field(rigid_body);
+                graph.add_val(val);
+            });
+    }
+}
+
+pub type SpeedGraphSys = LineGraphSys<SpeedGraph>;
+pub type RotVelGraphSys = LineGraphSys<RotVelGraph>;
+pub type XPosGraphSys = LineGraphSys<XPosGraph>;
+pub type YPosGraphSys = LineGraphSys<YPosGraph>;
