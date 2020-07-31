@@ -16,7 +16,6 @@ use graphics::Rect;
 
 pub trait Graph {
     fn draw(&self, builder: &mut MeshBuilder, color: graphics::Color, min_max: Option<(f32, f32)>);
-    fn access_field(&self, body: &RigidBody);
 }
 
 pub trait LineGraph {
@@ -25,7 +24,9 @@ pub trait LineGraph {
     fn name(&self) -> String;
     fn shown(&self) -> bool;
     fn max_len(&self) -> usize;
-    fn access_field(&self, rigid_body: &RigidBody) -> f32;
+    fn access_field(rigid_body: &RigidBody) -> f32
+    where
+        Self: Sized;
 }
 
 impl Graph for dyn LineGraph {
@@ -56,10 +57,6 @@ impl Graph for dyn LineGraph {
                 )
                 .unwrap();
         }
-    }
-
-    fn access_field(&self, rigid_body: &RigidBody) {
-        self.access_field(rigid_body);
     }
 }
 
@@ -115,7 +112,7 @@ macro_rules! create_linegraph {
                 self.max_len
             }
 
-            fn access_field(&self, rigid_body: &RigidBody) -> f32 {
+            fn access_field(rigid_body: &RigidBody) -> f32 {
                 $access_closure(rigid_body)
             }
         }
@@ -187,30 +184,6 @@ impl<'a, 'b> MainState<'a, 'b> {
         }
         draw_graphtype!(SpeedGraph);
         draw_graphtype!(RotVelGraph);
-        // (&speed_graphs, &colors).join().for_each(|(graph, color)| {
-        //     if graph.shown {
-        //         if first_iter {
-        //             first_iter = false;
-        //             builder.rectangle(
-        //                 DrawMode::stroke(0.1),
-        //                 Rect::new(0.0, 0.0, 10.0, 10.0),
-        //                 WHITE,
-        //             );
-        //             builder.rectangle(DrawMode::fill(), Rect::new(0.0, 0.0, 10.0, 10.0), BLACK);
-        //             builder.rectangle(
-        //                 DrawMode::fill(),
-        //                 Rect::new(9.5, 9.5, 0.5, 0.5),
-        //                 graphics::Color::new(0.45, 0.6, 0.85, 1.0),
-        //             );
-        //         }
-        //         Graph::draw(
-        //             graph as &dyn LineGraph,
-        //             builder,
-        //             color.0,
-        //             Some((min_max.0, min_max.1)),
-        //         );
-        //     }
-        // });
     }
 
     pub fn graph_grab_rect(&self) -> Rect {

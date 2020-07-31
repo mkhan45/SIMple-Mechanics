@@ -112,7 +112,7 @@ pub struct LineGraphSys<T>
 where
     T: LineGraph + Component,
 {
-    pub phantom_data: std::marker::PhantomData<T>,
+    phantom_data: std::marker::PhantomData<T>,
 }
 
 impl<'a, T> System<'a> for LineGraphSys<T>
@@ -136,7 +136,7 @@ where
                     .unwrap()
                     .downcast_ref::<RigidBody>()
                     .unwrap();
-                let val = graph.access_field(rigid_body);
+                let val = T::access_field(rigid_body);
                 graph.add_val(val);
             });
     }
