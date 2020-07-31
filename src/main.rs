@@ -33,9 +33,9 @@ mod components;
 use components::*;
 
 mod systems;
-use crate::systems::MinMaxGraphSys;
+use crate::{gui::graphs::RotVelGraph, systems::MinMaxGraphSys};
 use resources::HiDPIFactor;
-use systems::{GraphTransformSys, SelectedMoveSys, SpeedGraphSys};
+use systems::{GraphTransformSys, RotVelGraphSys, SelectedMoveSys, SpeedGraphSys};
 
 const SCREEN_X: f32 = 20.0;
 const SCREEN_Y: f32 = 20.0;
@@ -136,10 +136,12 @@ fn main() -> ggez::GameResult {
     world.register::<Color>();
     world.register::<Name>();
     world.register::<SpeedGraph>();
+    world.register::<RotVelGraph>();
 
     let mut dispatcher = DispatcherBuilder::new()
         .with(SelectedMoveSys, "selected_move_sys", &[])
         .with(SpeedGraphSys, "speed_graph_sys", &[])
+        .with(RotVelGraphSys, "rotvel_graph_sys", &[])
         .with(MinMaxGraphSys, "graph_minmax_sys", &["speed_graph_sys"])
         .with(GraphTransformSys, "graph_transform_sys", &[])
         .build();

@@ -39,7 +39,7 @@ impl Graph for dyn LineGraph {
                 })
         });
         let midpoint = (min + max) / 2.0;
-        let scale_fac = 8.0 / (max - min).max(1.0e-10);
+        let scale_fac = 8.0 / (max - min).max(1.0 / 8.0);
 
         if s0.len() + s1.len() >= 3 {
             builder
@@ -123,40 +123,82 @@ macro_rules! create_linegraph {
     };
 }
 
+create_linegraph!(SpeedGraph, "Speed");
+create_linegraph!(RotVelGraph, "Rotational Velocity");
+create_linegraph!(XPosGraph, "X Position");
+create_linegraph!(YPosGraph, "Y Position");
+
 impl<'a, 'b> MainState<'a, 'b> {
     pub fn draw_graphs(&self, builder: &mut MeshBuilder) {
         use ggez::graphics::{DrawMode, BLACK, WHITE};
         use specs::prelude::*;
 
-        let speed_graphs = self.world.read_storage::<SpeedGraph>();
+        // let speed_graphs = self.world.read_storage::<SpeedGraph>();
         let colors = self.world.read_storage::<components::Color>();
         let min_max = self.world.fetch::<GraphMinMax>();
 
         let mut first_iter = true;
-        (&speed_graphs, &colors).join().for_each(|(graph, color)| {
-            if graph.shown {
-                if first_iter {
-                    first_iter = false;
-                    builder.rectangle(
-                        DrawMode::stroke(0.1),
-                        Rect::new(0.0, 0.0, 10.0, 10.0),
-                        WHITE,
-                    );
-                    builder.rectangle(DrawMode::fill(), Rect::new(0.0, 0.0, 10.0, 10.0), BLACK);
-                    builder.rectangle(
-                        DrawMode::fill(),
-                        Rect::new(9.5, 9.5, 0.5, 0.5),
-                        graphics::Color::new(0.45, 0.6, 0.85, 1.0),
-                    );
-                }
-                Graph::draw(
-                    graph as &dyn LineGraph,
-                    builder,
-                    color.0,
-                    Some((min_max.0, min_max.1)),
-                );
-            }
-        });
+        macro_rules! draw_graphtype {
+            ( $graphtype:ident ) => {
+                let graph_storages = self.world.read_storage::<$graphtype>();
+                (&graph_storages, &colors)
+                    .join()
+                    .for_each(|(graph, color)| {
+                        if graph.shown {
+                            if first_iter {
+                                first_iter = false;
+                                builder.rectangle(
+                                    DrawMode::stroke(0.1),
+                                    Rect::new(0.0, 0.0, 10.0, 10.0),
+                                    WHITE,
+                                );
+                                builder.rectangle(
+                                    DrawMode::fill(),
+                                    Rect::new(0.0, 0.0, 10.0, 10.0),
+                                    BLACK,
+                                );
+                                builder.rectangle(
+                                    DrawMode::fill(),
+                                    Rect::new(9.5, 9.5, 0.5, 0.5),
+                                    graphics::Color::new(0.45, 0.6, 0.85, 1.0),
+                                );
+                            }
+                            Graph::draw(
+                                graph as &dyn LineGraph,
+                                builder,
+                                color.0,
+                                Some((min_max.0, min_max.1)),
+                            );
+                        }
+                    });
+            };
+        }
+        draw_graphtype!(SpeedGraph);
+        draw_graphtype!(RotVelGraph);
+        // (&speed_graphs, &colors).join().for_each(|(graph, color)| {
+        //     if graph.shown {
+        //         if first_iter {
+        //             first_iter = false;
+        //             builder.rectangle(
+        //                 DrawMode::stroke(0.1),
+        //                 Rect::new(0.0, 0.0, 10.0, 10.0),
+        //                 WHITE,
+        //             );
+        //             builder.rectangle(DrawMode::fill(), Rect::new(0.0, 0.0, 10.0, 10.0), BLACK);
+        //             builder.rectangle(
+        //                 DrawMode::fill(),
+        //                 Rect::new(9.5, 9.5, 0.5, 0.5),
+        //                 graphics::Color::new(0.45, 0.6, 0.85, 1.0),
+        //             );
+        //         }
+        //         Graph::draw(
+        //             graph as &dyn LineGraph,
+        //             builder,
+        //             color.0,
+        //             Some((min_max.0, min_max.1)),
+        //         );
+        //     }
+        // });
     }
 
     pub fn graph_grab_rect(&self) -> Rect {
@@ -170,8 +212,3 @@ impl<'a, 'b> MainState<'a, 'b> {
         )
     }
 }
-
-create_linegraph!(SpeedGraph, "Speed");
-create_linegraph!(RotVelGraph, "Rotational Velocity");
-create_linegraph!(XPosGraph, "X Position");
-create_linegraph!(YPosGraph, "Y Position");

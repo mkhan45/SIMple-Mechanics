@@ -41,6 +41,7 @@ pub enum UiSignal {
     TogglePause,
     LoadLua(String),
     AddSpeedGraph(Entity),
+    AddRotVelGraph(Entity),
 }
 
 pub struct ImGuiWrapper {

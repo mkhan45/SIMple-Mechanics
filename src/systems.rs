@@ -4,7 +4,7 @@ use specs::prelude::*;
 use crate::{BodySet, MechanicalWorld, RigidBody, Selected};
 
 use crate::components::*;
-use crate::gui::graphs::{LineGraph, SpeedGraph};
+use crate::gui::graphs::{LineGraph, RotVelGraph, SpeedGraph};
 
 use crate::{resources::*, Vector};
 
@@ -45,18 +45,28 @@ impl<'a> System<'a> for SelectedMoveSys {
 
 pub struct MinMaxGraphSys;
 impl<'a> System<'a> for MinMaxGraphSys {
-    type SystemData = (ReadStorage<'a, SpeedGraph>, Write<'a, GraphMinMax>);
+    type SystemData = (
+        ReadStorage<'a, SpeedGraph>,
+        ReadStorage<'a, RotVelGraph>,
+        Write<'a, GraphMinMax>,
+    );
 
-    fn run(&mut self, (speed_graphs, mut min_max): Self::SystemData) {
+    fn run(&mut self, (speed_graphs, rotvel_graphs, mut min_max): Self::SystemData) {
         let (mut min, mut max) = (std::f32::INFINITY, std::f32::NEG_INFINITY);
 
-        speed_graphs.join().for_each(|graph| {
-            let (s0, s1) = graph.points();
-            s0.iter().chain(s1.iter()).for_each(|[_, v]| {
-                min = min.min(*v);
-                max = max.max(*v);
-            });
-        });
+        macro_rules! minmax_graph_storage {
+            ( $graph_storage:expr ) => {
+                $graph_storage.join().for_each(|graph| {
+                    let (s0, s1) = graph.points();
+                    s0.iter().chain(s1.iter()).for_each(|[_, v]| {
+                        min = min.min(*v);
+                        max = max.max(*v);
+                    });
+                });
+            };
+        }
+        minmax_graph_storage!(speed_graphs);
+        minmax_graph_storage!(rotvel_graphs);
 
         min_max.0 = min;
         min_max.1 = max;
@@ -97,28 +107,40 @@ impl<'a> System<'a> for GraphTransformSys {
     }
 }
 
-pub struct SpeedGraphSys;
-impl<'a> System<'a> for SpeedGraphSys {
-    type SystemData = (
-        WriteStorage<'a, SpeedGraph>,
-        ReadStorage<'a, PhysicsBody>,
-        Option<Read<'a, BodySet>>,
-    );
+macro_rules! make_graphsys {
+    ( $sys:ident, $graphcomp:ident, $access_fn:expr ) => {
+        pub struct $sys;
+        impl<'a> System<'a> for $sys {
+            type SystemData = (
+                WriteStorage<'a, $graphcomp>,
+                ReadStorage<'a, PhysicsBody>,
+                Option<Read<'a, BodySet>>,
+            );
 
-    // TODO add a limit to length of graph
-    fn run(&mut self, (mut speed_graphs, physics_bodies, body_set): Self::SystemData) {
-        (&mut speed_graphs, &physics_bodies)
-            .join()
-            .for_each(|(graph, physics_body)| {
-                let rigid_body = body_set
-                    .as_ref()
-                    .unwrap()
-                    .get(physics_body.body_handle)
-                    .unwrap()
-                    .downcast_ref::<RigidBody>()
-                    .unwrap();
-                let speed = rigid_body.velocity().linear.norm();
-                graph.add_val(speed);
-            });
-    }
+            // TODO add a limit to length of graph
+            fn run(&mut self, (mut speed_graphs, physics_bodies, body_set): Self::SystemData) {
+                (&mut speed_graphs, &physics_bodies)
+                    .join()
+                    .for_each(|(graph, physics_body)| {
+                        let rigid_body = body_set
+                            .as_ref()
+                            .unwrap()
+                            .get(physics_body.body_handle)
+                            .unwrap()
+                            .downcast_ref::<RigidBody>()
+                            .unwrap();
+                        // let speed = rigid_body.velocity().linear.norm();
+                        let val = $access_fn(rigid_body);
+                        graph.add_val(val);
+                    });
+            }
+        }
+    };
 }
+
+make_graphsys!(SpeedGraphSys, SpeedGraph, |rigid_body: &RigidBody| {
+    rigid_body.velocity().linear.norm()
+});
+make_graphsys!(RotVelGraphSys, RotVelGraph, |rigid_body: &RigidBody| {
+    rigid_body.velocity().angular
+});

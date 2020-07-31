@@ -25,7 +25,7 @@ use crate::resources::{
 
 use crate::{
     gui::{
-        graphs::SpeedGraph,
+        graphs::{RotVelGraph, SpeedGraph},
         imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal},
     },
     Point,
@@ -53,6 +53,15 @@ pub struct MainState<'a, 'b> {
 
 impl<'a, 'b> MainState<'a, 'b> {
     pub fn process_gui_signals(&mut self) {
+        macro_rules! add_graph_variant {
+            ( $graph_type:ident, $entity:expr ) => {
+                let mut graph_storage = self.world.write_storage::<$graph_type>();
+                graph_storage
+                    .insert(*$entity, $graph_type::default())
+                    .unwrap();
+            };
+        }
+
         self.imgui_wrapper
             .sent_signals
             .clone()
@@ -76,11 +85,13 @@ impl<'a, 'b> MainState<'a, 'b> {
                     self.add_shapes_from_lua_file(format!("lua/{}", filename));
                     self.lua_update();
                 }
+                //TODO: Figure out how to make macro work in top level of match, e.g.
+                // add_graph_variant!(SpeedGraph) generates the whole match arm
                 UiSignal::AddSpeedGraph(entity) => {
-                    let mut speedgraph_storages = self.world.write_storage::<SpeedGraph>();
-                    speedgraph_storages
-                        .insert(*entity, SpeedGraph::default())
-                        .unwrap();
+                    add_graph_variant!(SpeedGraph, entity);
+                }
+                UiSignal::AddRotVelGraph(entity) => {
+                    add_graph_variant!(RotVelGraph, entity);
                 }
             });
         self.imgui_wrapper.sent_signals.clear();
