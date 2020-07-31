@@ -35,7 +35,7 @@ use components::*;
 mod systems;
 use crate::systems::MinMaxGraphSys;
 use resources::HiDPIFactor;
-use systems::{SelectedMoveSys, SpeedGraphSys};
+use systems::{GraphTransformSys, SelectedMoveSys, SpeedGraphSys};
 
 const SCREEN_X: f32 = 20.0;
 const SCREEN_Y: f32 = 20.0;
@@ -76,6 +76,10 @@ fn main() -> ggez::GameResult {
 
     world.insert(resources::FrameSteps(1));
     world.insert(resources::Paused(false));
+
+    world.insert(resources::GraphPosData::default());
+    world.insert(resources::MovingGraph(false));
+    world.insert(resources::ScalingGraph(false));
 
     world.insert(resources::GraphMinMax(
         std::f32::NEG_INFINITY,
@@ -137,6 +141,7 @@ fn main() -> ggez::GameResult {
         .with(SelectedMoveSys, "selected_move_sys", &[])
         .with(SpeedGraphSys, "speed_graph_sys", &[])
         .with(MinMaxGraphSys, "graph_minmax_sys", &["speed_graph_sys"])
+        .with(GraphTransformSys, "graph_transform_sys", &[])
         .build();
 
     dispatcher.setup(&mut world);

@@ -34,7 +34,10 @@ use crate::{
 use graphics::DrawMode;
 use ncollide2d as nc;
 use nphysics2d as np;
-use resources::{CreateShapeCentered, CreationData, HiDPIFactor, MouseStartPos};
+use resources::{
+    CreateShapeCentered, CreationData, GraphPosData, HiDPIFactor, MouseStartPos, MovingGraph,
+    ScalingGraph,
+};
 
 pub mod body_builder;
 use body_builder::BodyBuilder;
@@ -341,7 +344,14 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             let graph_builder = &mut graphics::MeshBuilder::new();
             self.draw_graphs(graph_builder);
             if let Ok(mesh) = graph_builder.build(ctx) {
-                let _ = graphics::draw(ctx, &mesh, graphics::DrawParam::new());
+                let graph_rect = self.world.fetch::<GraphPosData>().0;
+                let _ = graphics::draw(
+                    ctx,
+                    &mesh,
+                    graphics::DrawParam::new()
+                        .dest([graph_rect.x, graph_rect.y])
+                        .scale([graph_rect.w / 10.0, graph_rect.h / 10.0]),
+                );
             }
         }
 
@@ -429,9 +439,21 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
         match btn {
             MouseButton::Left => {
-                let mut selected = self.world.write_storage::<Selected>();
-                if let Some(entity) = get_hovered_shape(&self.world) {
-                    selected.insert(entity, Selected::default()).unwrap();
+                {
+                    let mouse_rect = graphics::Rect::new(mouse_point.x, mouse_point.y, 0.1, 0.1);
+                    let graph_grab_rect = self.graph_grab_rect();
+
+                    if mouse_rect.overlaps(&graph_grab_rect) {
+                        self.world.insert(MovingGraph(true));
+                        return;
+                    }
+                }
+
+                {
+                    let mut selected = self.world.write_storage::<Selected>();
+                    if let Some(entity) = get_hovered_shape(&self.world) {
+                        selected.insert(entity, Selected::default()).unwrap();
+                    }
                 }
 
                 {
@@ -442,43 +464,57 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 }
             }
             MouseButton::Right => {
-                let mut info_displayed = self.world.write_storage::<InfoDisplayed>();
-                match get_hovered_shape(&self.world) {
-                    Some(entity) => {
-                        if info_displayed.get(entity).is_some() {
-                            info_displayed.remove(entity).unwrap();
-                            self.imgui_wrapper.remove_sidemenu(&entity);
-                        } else {
-                            info_displayed
-                                .insert(entity, InfoDisplayed::default())
-                                .unwrap();
-                        }
-                    }
-                    None => {
-                        info_displayed.clear();
+                {
+                    let mouse_rect = graphics::Rect::new(mouse_point.x, mouse_point.y, 0.1, 0.1);
+                    let graph_grab_rect = self.graph_grab_rect();
 
-                        // remove all the sidemenus in shown menus
-                        self.imgui_wrapper
-                            .shown_menus
-                            .retain(|menu| !matches!(menu, UiChoice::SideMenu(_)));
+                    if mouse_rect.overlaps(&graph_grab_rect) {
+                        self.world.insert(ScalingGraph(true));
+                        return;
                     }
                 }
 
-                let create_shape_data = self.world.fetch::<CreationData>();
-                if let Some(ShapeInfo::Polygon(Some(_points))) = &create_shape_data.0.clone() {
-                    let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
-                    BodyBuilder {
-                        translation: start_pos,
-                        rotation: 0.0,
-                        restitution: self.world.fetch::<CreateElasticity>().0,
-                        friction: self.world.fetch::<CreateFriction>().0,
-                        ..BodyBuilder::from_world(
-                            &self.world,
-                            create_shape_data.0.as_ref().unwrap().clone(),
-                            self.world.fetch::<CreateMass>().0,
-                        )
+                {
+                    let mut info_displayed = self.world.write_storage::<InfoDisplayed>();
+                    match get_hovered_shape(&self.world) {
+                        Some(entity) => {
+                            if info_displayed.get(entity).is_some() {
+                                info_displayed.remove(entity).unwrap();
+                                self.imgui_wrapper.remove_sidemenu(&entity);
+                            } else {
+                                info_displayed
+                                    .insert(entity, InfoDisplayed::default())
+                                    .unwrap();
+                            }
+                        }
+                        None => {
+                            info_displayed.clear();
+
+                            // remove all the sidemenus in shown menus
+                            self.imgui_wrapper
+                                .shown_menus
+                                .retain(|menu| !matches!(menu, UiChoice::SideMenu(_)));
+                        }
                     }
-                    .create();
+                }
+
+                {
+                    let create_shape_data = self.world.fetch::<CreationData>();
+                    if let Some(ShapeInfo::Polygon(Some(_points))) = &create_shape_data.0.clone() {
+                        let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
+                        BodyBuilder {
+                            translation: start_pos,
+                            rotation: 0.0,
+                            restitution: self.world.fetch::<CreateElasticity>().0,
+                            friction: self.world.fetch::<CreateFriction>().0,
+                            ..BodyBuilder::from_world(
+                                &self.world,
+                                create_shape_data.0.as_ref().unwrap().clone(),
+                                self.world.fetch::<CreateMass>().0,
+                            )
+                        }
+                        .create();
+                    }
                 }
             }
             _ => {}
@@ -493,121 +529,133 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         _y: f32,
     ) {
         self.imgui_wrapper.update_mouse_down((false, false, false));
-        if let MouseButton::Left = btn {
-            {
-                let mut selected = self.world.write_storage::<Selected>();
-                selected.clear();
-            }
+        match btn {
+            MouseButton::Left => {
+                {
+                    let mut selected = self.world.write_storage::<Selected>();
+                    selected.clear();
+                }
 
-            let create_shape_opt = self.world.fetch::<CreationData>();
-            let create_shape_data = create_shape_opt.0.as_ref();
-            let create_shape_centered = self.world.fetch::<CreateShapeCentered>().0;
-            let status = if self.world.fetch::<CreateShapeStatic>().0 {
-                np::object::BodyStatus::Static
-            } else {
-                np::object::BodyStatus::Dynamic
-            };
+                self.world.insert(MovingGraph(false));
 
-            if let Some(data) = &create_shape_data {
-                let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
-                let current_pos = self.world.fetch::<MousePos>().0;
-                let mouse_drag_vec = start_pos - current_pos;
-                match (data, create_shape_centered) {
-                    (ShapeInfo::Rectangle(_), true) => {
-                        BodyBuilder {
-                            translation: start_pos,
-                            rotation: 0.0,
-                            restitution: self.world.fetch::<CreateElasticity>().0,
-                            friction: self.world.fetch::<CreateFriction>().0,
-                            status,
-                            ..BodyBuilder::from_world(
-                                &self.world,
-                                ShapeInfo::Rectangle(Some(mouse_drag_vec.abs())),
-                                self.world.fetch::<CreateMass>().0,
-                            )
-                        }
-                        .create();
-                        std::mem::drop(create_shape_opt);
-                        self.world.insert(CreationData(None));
-                    }
-                    (ShapeInfo::Rectangle(_), false) => {
-                        let mut start_pos = start_pos;
-                        if mouse_drag_vec.x < 0.0 {
-                            start_pos.x += mouse_drag_vec.x.abs();
-                        }
-                        if mouse_drag_vec.y < 0.0 {
-                            start_pos.y += mouse_drag_vec.y.abs();
-                        }
+                let create_shape_opt = self.world.fetch::<CreationData>();
+                let create_shape_data = create_shape_opt.0.as_ref();
+                let create_shape_centered = self.world.fetch::<CreateShapeCentered>().0;
+                let status = if self.world.fetch::<CreateShapeStatic>().0 {
+                    np::object::BodyStatus::Static
+                } else {
+                    np::object::BodyStatus::Dynamic
+                };
 
-                        BodyBuilder {
-                            translation: start_pos - mouse_drag_vec.abs() / 2.0,
-                            rotation: 0.0,
-                            restitution: self.world.fetch::<CreateElasticity>().0,
-                            friction: self.world.fetch::<CreateFriction>().0,
-                            status,
-                            ..BodyBuilder::from_world(
-                                &self.world,
-                                ShapeInfo::Rectangle(Some(mouse_drag_vec.abs() / 2.0)),
-                                self.world.fetch::<CreateMass>().0,
-                            )
+                if let Some(data) = &create_shape_data {
+                    let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
+                    let current_pos = self.world.fetch::<MousePos>().0;
+                    let mouse_drag_vec = start_pos - current_pos;
+                    match (data, create_shape_centered) {
+                        (ShapeInfo::Rectangle(_), true) => {
+                            BodyBuilder {
+                                translation: start_pos,
+                                rotation: 0.0,
+                                restitution: self.world.fetch::<CreateElasticity>().0,
+                                friction: self.world.fetch::<CreateFriction>().0,
+                                status,
+                                ..BodyBuilder::from_world(
+                                    &self.world,
+                                    ShapeInfo::Rectangle(Some(mouse_drag_vec.abs())),
+                                    self.world.fetch::<CreateMass>().0,
+                                )
+                            }
+                            .create();
+                            std::mem::drop(create_shape_opt);
+                            self.world.insert(CreationData(None));
                         }
-                        .create();
-                        std::mem::drop(create_shape_opt);
-                        self.world.insert(CreationData(None));
-                    }
-                    (ShapeInfo::Circle(_), true) => {
-                        BodyBuilder {
-                            translation: start_pos,
-                            rotation: 0.0,
-                            restitution: self.world.fetch::<CreateElasticity>().0,
-                            friction: self.world.fetch::<CreateFriction>().0,
-                            status,
-                            ..BodyBuilder::from_world(
-                                &self.world,
-                                ShapeInfo::Circle(Some(mouse_drag_vec.norm().max(0.001))),
-                                self.world.fetch::<CreateMass>().0,
-                            )
+                        (ShapeInfo::Rectangle(_), false) => {
+                            let mut start_pos = start_pos;
+                            if mouse_drag_vec.x < 0.0 {
+                                start_pos.x += mouse_drag_vec.x.abs();
+                            }
+                            if mouse_drag_vec.y < 0.0 {
+                                start_pos.y += mouse_drag_vec.y.abs();
+                            }
+
+                            BodyBuilder {
+                                translation: start_pos - mouse_drag_vec.abs() / 2.0,
+                                rotation: 0.0,
+                                restitution: self.world.fetch::<CreateElasticity>().0,
+                                friction: self.world.fetch::<CreateFriction>().0,
+                                status,
+                                ..BodyBuilder::from_world(
+                                    &self.world,
+                                    ShapeInfo::Rectangle(Some(mouse_drag_vec.abs() / 2.0)),
+                                    self.world.fetch::<CreateMass>().0,
+                                )
+                            }
+                            .create();
+                            std::mem::drop(create_shape_opt);
+                            self.world.insert(CreationData(None));
                         }
-                        .create();
-                        std::mem::drop(create_shape_opt);
-                        self.world.insert(CreationData(None));
-                    }
-                    (ShapeInfo::Circle(_), false) => {
-                        BodyBuilder {
-                            translation: start_pos - mouse_drag_vec / 2.0,
-                            rotation: 0.0,
-                            restitution: self.world.fetch::<CreateElasticity>().0,
-                            friction: self.world.fetch::<CreateFriction>().0,
-                            status,
-                            ..BodyBuilder::from_world(
-                                &self.world,
-                                ShapeInfo::Circle(Some((mouse_drag_vec.norm() / 2.0).max(0.001))),
-                                self.world.fetch::<CreateMass>().0,
-                            )
+                        (ShapeInfo::Circle(_), true) => {
+                            BodyBuilder {
+                                translation: start_pos,
+                                rotation: 0.0,
+                                restitution: self.world.fetch::<CreateElasticity>().0,
+                                friction: self.world.fetch::<CreateFriction>().0,
+                                status,
+                                ..BodyBuilder::from_world(
+                                    &self.world,
+                                    ShapeInfo::Circle(Some(mouse_drag_vec.norm().max(0.001))),
+                                    self.world.fetch::<CreateMass>().0,
+                                )
+                            }
+                            .create();
+                            std::mem::drop(create_shape_opt);
+                            self.world.insert(CreationData(None));
                         }
-                        .create();
-                        std::mem::drop(create_shape_opt);
-                        self.world.insert(CreationData(None));
-                    }
-                    (ShapeInfo::Polygon(_), _) => {}
-                    (ShapeInfo::Polyline(Some(points)), _) => {
-                        BodyBuilder {
-                            restitution: self.world.fetch::<CreateElasticity>().0,
-                            friction: self.world.fetch::<CreateFriction>().0,
-                            status,
-                            ..BodyBuilder::from_world(
-                                &self.world,
-                                ShapeInfo::Polyline(Some(points.clone())),
-                                self.world.fetch::<CreateMass>().0,
-                            )
+                        (ShapeInfo::Circle(_), false) => {
+                            BodyBuilder {
+                                translation: start_pos - mouse_drag_vec / 2.0,
+                                rotation: 0.0,
+                                restitution: self.world.fetch::<CreateElasticity>().0,
+                                friction: self.world.fetch::<CreateFriction>().0,
+                                status,
+                                ..BodyBuilder::from_world(
+                                    &self.world,
+                                    ShapeInfo::Circle(Some(
+                                        (mouse_drag_vec.norm() / 2.0).max(0.001),
+                                    )),
+                                    self.world.fetch::<CreateMass>().0,
+                                )
+                            }
+                            .create();
+                            std::mem::drop(create_shape_opt);
+                            self.world.insert(CreationData(None));
                         }
-                        .create();
-                        std::mem::drop(create_shape_opt);
-                        self.world.insert(CreationData(None));
+                        (ShapeInfo::Polygon(_), _) => {}
+                        (ShapeInfo::Polyline(Some(points)), _) => {
+                            BodyBuilder {
+                                restitution: self.world.fetch::<CreateElasticity>().0,
+                                friction: self.world.fetch::<CreateFriction>().0,
+                                status,
+                                ..BodyBuilder::from_world(
+                                    &self.world,
+                                    ShapeInfo::Polyline(Some(points.clone())),
+                                    self.world.fetch::<CreateMass>().0,
+                                )
+                            }
+                            .create();
+                            std::mem::drop(create_shape_opt);
+                            self.world.insert(CreationData(None));
+                        }
+                        (ShapeInfo::Polyline(None), _) => unreachable!(),
                     }
-                    (ShapeInfo::Polyline(None), _) => unreachable!(),
                 }
             }
+
+            MouseButton::Right => {
+                self.world.insert(ScalingGraph(false));
+            }
+
+            _ => {}
         }
 
         self.world.insert(resources::MouseStartPos(None));

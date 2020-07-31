@@ -4,7 +4,12 @@ use specs::Component;
 
 use std::collections::VecDeque;
 
-use crate::{components, main_state::MainState, resources::GraphMinMax};
+use crate::{
+    components,
+    main_state::MainState,
+    resources::{GraphMinMax, GraphPosData},
+};
+use graphics::Rect;
 
 // use csv;
 
@@ -120,7 +125,7 @@ macro_rules! create_linegraph {
 
 impl<'a, 'b> MainState<'a, 'b> {
     pub fn draw_graphs(&self, builder: &mut MeshBuilder) {
-        use ggez::graphics::{DrawMode, Rect, BLACK, WHITE};
+        use ggez::graphics::{DrawMode, BLACK, WHITE};
         use specs::prelude::*;
 
         let speed_graphs = self.world.read_storage::<SpeedGraph>();
@@ -138,6 +143,11 @@ impl<'a, 'b> MainState<'a, 'b> {
                         WHITE,
                     );
                     builder.rectangle(DrawMode::fill(), Rect::new(0.0, 0.0, 10.0, 10.0), BLACK);
+                    builder.rectangle(
+                        DrawMode::fill(),
+                        Rect::new(9.5, 9.5, 0.5, 0.5),
+                        graphics::Color::new(0.45, 0.6, 0.85, 1.0),
+                    );
                 }
                 Graph::draw(
                     graph as &dyn LineGraph,
@@ -147,6 +157,17 @@ impl<'a, 'b> MainState<'a, 'b> {
                 );
             }
         });
+    }
+
+    pub fn graph_grab_rect(&self) -> Rect {
+        let graph_rect = self.world.fetch::<GraphPosData>().0;
+        let scale_fac = graph_rect.w / 10.0;
+        graphics::Rect::new(
+            graph_rect.x + (9.5 * scale_fac),
+            graph_rect.y + (9.5 * scale_fac),
+            0.5 * scale_fac,
+            0.5 * scale_fac,
+        )
     }
 }
 

@@ -1,4 +1,5 @@
 use crate::{Point, Vector};
+use ggez::graphics::Rect;
 
 #[derive(Copy, Clone)]
 pub struct MousePos(pub Vector);
@@ -66,3 +67,18 @@ impl Paused {
 
 #[derive(Copy, Clone, Default)]
 pub struct GraphMinMax(pub f32, pub f32);
+
+#[derive(Copy, Clone)]
+pub struct GraphPosData(pub Rect);
+
+impl Default for GraphPosData {
+    fn default() -> Self {
+        GraphPosData(Rect::new(00.0, 0.0, 10.0, 10.0))
+    }
+}
+
+#[derive(Copy, Clone, Default)]
+pub struct MovingGraph(pub bool);
+
+#[derive(Copy, Clone, Default)]
+pub struct ScalingGraph(pub bool);
