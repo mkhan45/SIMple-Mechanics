@@ -257,9 +257,9 @@ pub fn make_sidemenu(
         let mut color = colors_storage.get_mut(entity).unwrap();
         color.0.r = color_arr[0];
         color.0.g = color_arr[1];
-        color.0.b = color_arr[2]; 
+        color.0.b = color_arr[2];
 
-        ui.menu(im_str!("Add Graph"), true, ||{
+        ui.menu(im_str!("Add Graph"), true, || {
             signal_button!("Graph Speed", UiSignal::AddSpeedGraph(entity), ui, signals);
             signal_button!(
                 "Graph Rotational Vel",
@@ -267,30 +267,10 @@ pub fn make_sidemenu(
                 ui,
                 signals
             );
-            signal_button!(
-                "Graph X Vel",
-                UiSignal::AddXVelGraph(entity),
-                ui,
-                signals
-            );
-            signal_button!(
-                "Graph Y Vel",
-                UiSignal::AddYVelGraph(entity),
-                ui,
-                signals
-            );
-            signal_button!(
-                "Graph X Pos",
-                UiSignal::AddXPosGraph(entity),
-                ui,
-                signals
-            );
-            signal_button!(
-                "Graph Y Pos",
-                UiSignal::AddYPosGraph(entity),
-                ui,
-                signals
-            );
+            signal_button!("Graph X Vel", UiSignal::AddXVelGraph(entity), ui, signals);
+            signal_button!("Graph Y Vel", UiSignal::AddYVelGraph(entity), ui, signals);
+            signal_button!("Graph X Pos", UiSignal::AddXPosGraph(entity), ui, signals);
+            signal_button!("Graph Y Pos", UiSignal::AddYPosGraph(entity), ui, signals);
         });
         signal_button!("Delete Shape", UiSignal::DeleteShape(entity), ui, signals);
     });

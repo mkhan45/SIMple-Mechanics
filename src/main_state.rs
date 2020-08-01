@@ -25,7 +25,7 @@ use crate::resources::{
 
 use crate::{
     gui::{
-        graphs::{RotVelGraph, SpeedGraph, XVelGraph,  YVelGraph, XPosGraph, YPosGraph},
+        graphs::{RotVelGraph, SpeedGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph},
         imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal},
     },
     Point,

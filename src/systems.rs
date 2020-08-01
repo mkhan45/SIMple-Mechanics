@@ -4,7 +4,9 @@ use specs::prelude::*;
 use crate::{BodySet, MechanicalWorld, RigidBody, Selected};
 
 use crate::components::*;
-use crate::gui::graphs::{LineGraph, RotVelGraph, SpeedGraph, XPosGraph, YPosGraph, YVelGraph, XVelGraph};
+use crate::gui::graphs::{
+    LineGraph, RotVelGraph, SpeedGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph,
+};
 
 use crate::{resources::*, Vector};
 
@@ -55,7 +57,18 @@ impl<'a> System<'a> for MinMaxGraphSys {
         Write<'a, GraphMinMax>,
     );
 
-    fn run(&mut self, (speed_graphs, rotvel_graphs, xvel_graphs, yvel_graphs, xpos_graphs, ypos_graphs, mut min_max): Self::SystemData) {
+    fn run(
+        &mut self,
+        (
+            speed_graphs,
+            rotvel_graphs,
+            xvel_graphs,
+            yvel_graphs,
+            xpos_graphs,
+            ypos_graphs,
+            mut min_max,
+        ): Self::SystemData,
+    ) {
         let (mut min, mut max) = (std::f32::INFINITY, std::f32::NEG_INFINITY);
 
         macro_rules! minmax_graph_storage {
