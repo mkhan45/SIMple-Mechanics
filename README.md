@@ -29,3 +29,5 @@ Educational physics sim that uses graphs, FBDs, and other helpful stuff to teach
 ## gifs
 ![](demo.gif)
 ![](demo2.gif)
+![](demo3.gif)
+![](demo4.gif)

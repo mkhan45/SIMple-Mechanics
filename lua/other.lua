@@ -19,9 +19,9 @@ function update()
       print(string.format("FPS: %s, Mouse Pos: %.4f, %.4f", FPS, MOUSE_X, MOUSE_Y))
    end
 
-   if (tick % 90 == 0 and tick < 90 * 10) then
+   if (tick % 90 == 0 and tick < 90 * 6) then
       for i = 1, width do
-         add_shape({shape = "circle", x = 0.425 * i, y = 10 - tick / 60, r = 0.2, elasticity = 0.99,
+         add_shape({shape = "circle", x = 0.485 * i, y = 10 - tick / 60, r = 0.225, elasticity = 0.99,
          color = {r = tick % 255, g = 255 - (tick % 255), b = math.floor(i / width * 255)}})
       end
    end
