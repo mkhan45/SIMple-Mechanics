@@ -42,6 +42,10 @@ pub enum UiSignal {
     LoadLua(String),
     AddSpeedGraph(Entity),
     AddRotVelGraph(Entity),
+    AddXVelGraph(Entity),
+    AddYVelGraph(Entity),
+    AddXPosGraph(Entity),
+    AddYPosGraph(Entity),
     SerializeGraphs,
 }
 

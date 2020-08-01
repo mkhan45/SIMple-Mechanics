@@ -25,7 +25,7 @@ use crate::resources::{
 
 use crate::{
     gui::{
-        graphs::{RotVelGraph, SpeedGraph},
+        graphs::{RotVelGraph, SpeedGraph, XVelGraph,  YVelGraph, XPosGraph, YPosGraph},
         imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal},
     },
     Point,
@@ -92,6 +92,18 @@ impl<'a, 'b> MainState<'a, 'b> {
                 }
                 UiSignal::AddRotVelGraph(entity) => {
                     add_graph_variant!(RotVelGraph, entity);
+                }
+                UiSignal::AddXVelGraph(entity) => {
+                    add_graph_variant!(XVelGraph, entity);
+                }
+                UiSignal::AddYVelGraph(entity) => {
+                    add_graph_variant!(YVelGraph, entity);
+                }
+                UiSignal::AddXPosGraph(entity) => {
+                    add_graph_variant!(XPosGraph, entity);
+                }
+                UiSignal::AddYPosGraph(entity) => {
+                    add_graph_variant!(YPosGraph, entity);
                 }
                 UiSignal::SerializeGraphs => {}
             });

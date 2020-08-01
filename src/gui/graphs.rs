@@ -136,6 +136,14 @@ create_linegraph!(YPosGraph, "Y Position", |rigid_body: &RigidBody| rigid_body
     .position()
     .translation
     .y);
+create_linegraph!(XVelGraph, "X Velocity", |rigid_body: &RigidBody| rigid_body
+    .velocity()
+    .linear
+    .x);
+create_linegraph!(YVelGraph, "Y Velocity", |rigid_body: &RigidBody| rigid_body
+    .velocity()
+    .linear
+    .y);
 
 impl<'a, 'b> MainState<'a, 'b> {
     pub fn draw_graphs(&self, builder: &mut MeshBuilder) {
@@ -184,6 +192,10 @@ impl<'a, 'b> MainState<'a, 'b> {
         }
         draw_graphtype!(SpeedGraph);
         draw_graphtype!(RotVelGraph);
+        draw_graphtype!(XVelGraph);
+        draw_graphtype!(YVelGraph);
+        draw_graphtype!(XPosGraph);
+        draw_graphtype!(YPosGraph);
     }
 
     pub fn graph_grab_rect(&self) -> Rect {

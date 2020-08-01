@@ -33,10 +33,10 @@ mod components;
 use components::*;
 
 mod systems;
-use crate::{gui::graphs::RotVelGraph, systems::MinMaxGraphSys};
+use crate::{gui::graphs::{XVelGraph, YVelGraph, XPosGraph, YPosGraph, RotVelGraph}, systems::MinMaxGraphSys};
 use resources::HiDPIFactor;
 use systems::{
-    GraphTransformSys, RotVelGraphSys, SelectedMoveSys, SpeedGraphSys, XPosGraphSys, YPosGraphSys,
+    GraphTransformSys, RotVelGraphSys, SelectedMoveSys, SpeedGraphSys, XPosGraphSys, YPosGraphSys, YVelGraphSys, XVelGraphSys,
 };
 
 const SCREEN_X: f32 = 20.0;
@@ -139,6 +139,10 @@ fn main() -> ggez::GameResult {
     world.register::<Name>();
     world.register::<SpeedGraph>();
     world.register::<RotVelGraph>();
+    world.register::<XVelGraph>();
+    world.register::<YVelGraph>();
+    world.register::<XPosGraph>();
+    world.register::<YPosGraph>();
 
     let mut dispatcher = DispatcherBuilder::new()
         .with(SelectedMoveSys, "selected_move_sys", &[])
@@ -146,6 +150,8 @@ fn main() -> ggez::GameResult {
         .with(RotVelGraphSys::default(), "rotvel_graph_sys", &[])
         .with(XPosGraphSys::default(), "x_pos_graph_sys", &[])
         .with(YPosGraphSys::default(), "y_pos_graph_sys", &[])
+        .with(XVelGraphSys::default(), "x_vel_graph_sys", &[])
+        .with(YVelGraphSys::default(), "y_vel_graph_sys", &[])
         .with(MinMaxGraphSys, "graph_minmax_sys", &["speed_graph_sys"])
         .with(GraphTransformSys, "graph_transform_sys", &[])
         .build();

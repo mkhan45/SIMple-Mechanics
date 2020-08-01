@@ -4,7 +4,7 @@ use specs::prelude::*;
 use crate::{BodySet, MechanicalWorld, RigidBody, Selected};
 
 use crate::components::*;
-use crate::gui::graphs::{LineGraph, RotVelGraph, SpeedGraph, XPosGraph, YPosGraph};
+use crate::gui::graphs::{LineGraph, RotVelGraph, SpeedGraph, XPosGraph, YPosGraph, YVelGraph, XVelGraph};
 
 use crate::{resources::*, Vector};
 
@@ -48,10 +48,14 @@ impl<'a> System<'a> for MinMaxGraphSys {
     type SystemData = (
         ReadStorage<'a, SpeedGraph>,
         ReadStorage<'a, RotVelGraph>,
+        ReadStorage<'a, XVelGraph>,
+        ReadStorage<'a, YVelGraph>,
+        ReadStorage<'a, XPosGraph>,
+        ReadStorage<'a, YPosGraph>,
         Write<'a, GraphMinMax>,
     );
 
-    fn run(&mut self, (speed_graphs, rotvel_graphs, mut min_max): Self::SystemData) {
+    fn run(&mut self, (speed_graphs, rotvel_graphs, xvel_graphs, yvel_graphs, xpos_graphs, ypos_graphs, mut min_max): Self::SystemData) {
         let (mut min, mut max) = (std::f32::INFINITY, std::f32::NEG_INFINITY);
 
         macro_rules! minmax_graph_storage {
@@ -67,6 +71,10 @@ impl<'a> System<'a> for MinMaxGraphSys {
         }
         minmax_graph_storage!(speed_graphs);
         minmax_graph_storage!(rotvel_graphs);
+        minmax_graph_storage!(xvel_graphs);
+        minmax_graph_storage!(yvel_graphs);
+        minmax_graph_storage!(xpos_graphs);
+        minmax_graph_storage!(ypos_graphs);
 
         min_max.0 = min;
         min_max.1 = max;
@@ -144,5 +152,7 @@ where
 
 pub type SpeedGraphSys = LineGraphSys<SpeedGraph>;
 pub type RotVelGraphSys = LineGraphSys<RotVelGraph>;
+pub type XVelGraphSys = LineGraphSys<XVelGraph>;
+pub type YVelGraphSys = LineGraphSys<YVelGraph>;
 pub type XPosGraphSys = LineGraphSys<XPosGraph>;
 pub type YPosGraphSys = LineGraphSys<YPosGraph>;
