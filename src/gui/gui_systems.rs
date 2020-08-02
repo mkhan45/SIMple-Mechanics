@@ -11,7 +11,6 @@ use crate::gui::graphs::{
 use crate::{resources::*, Vector};
 
 pub struct SelectedMoveSys;
-
 impl<'a> System<'a> for SelectedMoveSys {
     type SystemData = (
         ReadStorage<'a, Selected>,

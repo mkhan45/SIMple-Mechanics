@@ -32,16 +32,11 @@ type RigidBodyDesc = np::object::RigidBodyDesc<f32>;
 mod components;
 use components::*;
 
-mod systems;
 use crate::{
     gui::graphs::{RotVelGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph},
-    systems::MinMaxGraphSys,
+    gui::gui_systems::*,
 };
 use resources::HiDPIFactor;
-use systems::{
-    GraphTransformSys, RotVelGraphSys, SelectedMoveSys, SpeedGraphSys, XPosGraphSys, XVelGraphSys,
-    YPosGraphSys, YVelGraphSys,
-};
 
 const SCREEN_X: f32 = 20.0;
 const SCREEN_Y: f32 = 20.0;
