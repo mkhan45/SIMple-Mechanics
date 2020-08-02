@@ -213,17 +213,39 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         }
 
         {
-            let graph_builder = &mut graphics::MeshBuilder::new();
-            self.draw_graphs(graph_builder);
+            let (graph_text, graph_builder) = self.draw_graphs();
             if let Ok(mesh) = graph_builder.build(ctx) {
                 let graph_rect = self.world.fetch::<GraphPosData>().0;
+                let scale_fac = graph_rect.w / 10.0;
                 let _ = graphics::draw(
                     ctx,
                     &mesh,
                     graphics::DrawParam::new()
                         .dest([graph_rect.x, graph_rect.y])
-                        .scale([graph_rect.w / 10.0, graph_rect.h / 10.0]),
+                        .scale([scale_fac, scale_fac]),
                 );
+
+                // redundant since we just iterate later
+                // but otherwise it's easy to forget the order
+                let [max_text, mid_text, min_text] = graph_text;
+
+                let y_translations = [0.25, 5.0, 9.25];
+
+                [max_text, mid_text, min_text]
+                    .iter()
+                    .zip(y_translations.iter())
+                    .for_each(|(text, y_translation)| {
+                        let _ = graphics::draw(
+                            ctx,
+                            text,
+                            graphics::DrawParam::new()
+                                .dest([
+                                    graph_rect.x + 0.25 * scale_fac,
+                                    graph_rect.y + y_translation * scale_fac,
+                                ])
+                                .scale([0.025 * scale_fac, 0.025 * scale_fac]),
+                        );
+                    });
             }
         }
 
