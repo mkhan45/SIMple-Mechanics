@@ -10,8 +10,9 @@ use imgui::StyleColor;
 use imgui::*;
 use imgui_gfx_renderer::*;
 
+use crate::gui::signals::UiSignal;
 use crate::gui::ui::*;
-use crate::{resources::ShapeInfo, Vector};
+use crate::Vector;
 
 use specs::prelude::*;
 
@@ -31,22 +32,6 @@ pub enum UiChoice {
     DefaultUI,
     SideMenu(Option<Entity>),
     Graph(Entity),
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub enum UiSignal {
-    AddShape(ShapeInfo),
-    DeleteShape(Entity),
-    DeleteAll,
-    TogglePause,
-    LoadLua(String),
-    AddSpeedGraph(Entity),
-    AddRotVelGraph(Entity),
-    AddXVelGraph(Entity),
-    AddYVelGraph(Entity),
-    AddXPosGraph(Entity),
-    AddYPosGraph(Entity),
-    SerializeGraphs,
 }
 
 pub struct ImGuiWrapper {

@@ -24,14 +24,10 @@ use crate::resources::{
 };
 
 use crate::{
-    gui::{
-        graphs::{RotVelGraph, SpeedGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph},
-        imgui_wrapper::{ImGuiWrapper, UiChoice, UiSignal},
-    },
+    gui::imgui_wrapper::{ImGuiWrapper, UiChoice},
     Point,
 };
 
-use graphics::DrawMode;
 use ncollide2d as nc;
 use nphysics2d as np;
 use resources::{
@@ -52,152 +48,6 @@ pub struct MainState<'a, 'b> {
 }
 
 impl<'a, 'b> MainState<'a, 'b> {
-    pub fn process_gui_signals(&mut self) {
-        macro_rules! add_graph_variant {
-            ( $graph_type:ident, $entity:expr ) => {
-                let mut graph_storage = self.world.write_storage::<$graph_type>();
-                graph_storage
-                    .insert(*$entity, $graph_type::default())
-                    .unwrap();
-            };
-        }
-
-        self.imgui_wrapper
-            .sent_signals
-            .clone()
-            .iter()
-            .for_each(|signal| match signal {
-                UiSignal::AddShape(shape_info) => {
-                    self.world.insert(CreationData(Some(shape_info.clone())))
-                }
-                UiSignal::DeleteShape(entity) => {
-                    self.delete_entity(*entity);
-                    self.imgui_wrapper.remove_sidemenu(entity);
-                }
-                UiSignal::DeleteAll => {
-                    self.delete_all();
-                }
-                UiSignal::TogglePause => {
-                    self.world.fetch_mut::<Paused>().toggle();
-                }
-                UiSignal::LoadLua(filename) => {
-                    self.delete_all();
-                    self.add_shapes_from_lua_file(format!("lua/{}", filename));
-                    self.lua_update();
-                }
-                //TODO: Figure out how to make macro work in top level of match, e.g.
-                // add_graph_variant!(SpeedGraph) generates the whole match arm
-                UiSignal::AddSpeedGraph(entity) => {
-                    add_graph_variant!(SpeedGraph, entity);
-                }
-                UiSignal::AddRotVelGraph(entity) => {
-                    add_graph_variant!(RotVelGraph, entity);
-                }
-                UiSignal::AddXVelGraph(entity) => {
-                    add_graph_variant!(XVelGraph, entity);
-                }
-                UiSignal::AddYVelGraph(entity) => {
-                    add_graph_variant!(YVelGraph, entity);
-                }
-                UiSignal::AddXPosGraph(entity) => {
-                    add_graph_variant!(XPosGraph, entity);
-                }
-                UiSignal::AddYPosGraph(entity) => {
-                    add_graph_variant!(YPosGraph, entity);
-                }
-                UiSignal::SerializeGraphs => {}
-            });
-        self.imgui_wrapper.sent_signals.clear();
-
-        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
-        lua.lock().unwrap().context(|lua_ctx| {
-            let globals = lua_ctx.globals();
-            globals
-                .set("GRAVITY", self.world.fetch::<MechanicalWorld>().gravity.y)
-                .unwrap();
-            globals
-                .set("PAUSED", self.world.fetch::<Paused>().0)
-                .unwrap();
-        });
-    }
-
-    pub fn draw_creation_gui(&self, mesh_builder: &mut ggez::graphics::MeshBuilder) {
-        let create_shape_opt = self.world.fetch::<CreationData>();
-        let create_shape_data = create_shape_opt.0.as_ref();
-        let create_shape_centered = self.world.fetch::<CreateShapeCentered>().0;
-
-        if let (Some(create_shape_data), Some(start_pos)) =
-            (&create_shape_data, self.world.fetch::<MouseStartPos>().0)
-        {
-            let mouse_pos = self.world.fetch::<MousePos>().0;
-            let mouse_drag_vec = mouse_pos - start_pos;
-            match (create_shape_data, create_shape_centered) {
-                (ShapeInfo::Rectangle(_), true) => {
-                    let v = mouse_drag_vec.abs();
-                    mesh_builder.rectangle(
-                        graphics::DrawMode::stroke(0.1),
-                        graphics::Rect::new(
-                            start_pos.x - v.x,
-                            start_pos.y - v.y,
-                            v.x * 2.0,
-                            v.y * 2.0,
-                        ),
-                        graphics::WHITE,
-                    );
-                }
-                (ShapeInfo::Rectangle(_), false) => {
-                    let (start_pos, extents) = if mouse_drag_vec.y > 0.0 {
-                        (start_pos, mouse_drag_vec)
-                    } else {
-                        (start_pos + mouse_drag_vec, -mouse_drag_vec)
-                    };
-
-                    mesh_builder.rectangle(
-                        graphics::DrawMode::stroke(0.1),
-                        graphics::Rect::new(start_pos.x, start_pos.y, extents.x, extents.y),
-                        graphics::WHITE,
-                    );
-                }
-                (ShapeInfo::Circle(_), true) => {
-                    let r = mouse_drag_vec.magnitude();
-                    mesh_builder.circle(
-                        DrawMode::stroke(0.1),
-                        [start_pos.x, start_pos.y],
-                        r,
-                        0.01,
-                        graphics::WHITE,
-                    );
-                }
-                (ShapeInfo::Circle(_), false) => {
-                    let r = mouse_drag_vec.magnitude() / 2.0;
-                    mesh_builder.circle(
-                        DrawMode::stroke(0.1),
-                        [
-                            start_pos.x + mouse_drag_vec.x / 2.0,
-                            start_pos.y + mouse_drag_vec.y / 2.0,
-                        ],
-                        r,
-                        0.01,
-                        graphics::WHITE,
-                    );
-                }
-                _ => {}
-            }
-        }
-
-        if let Some(ShapeInfo::Polygon(Some(points))) = &create_shape_data {
-            let _ = mesh_builder.line(
-                points
-                    .iter()
-                    .map(|p| [p.x, p.y])
-                    .collect::<Vec<[f32; 2]>>()
-                    .as_slice(),
-                0.1,
-                graphics::WHITE,
-            );
-        }
-    }
-
     pub fn delete_entity(&mut self, entity: Entity) {
         {
             let mut body_set = self.world.fetch_mut::<BodySet>();
