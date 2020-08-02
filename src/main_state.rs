@@ -248,9 +248,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             self.lua_update();
         }
 
-        if !self.world.fetch::<Paused>().0 {
-            self.dispatcher.dispatch(&self.world);
-        }
+        self.dispatcher.dispatch(&self.world);
 
         {
             let info_displayed = self.world.read_storage::<InfoDisplayed>();

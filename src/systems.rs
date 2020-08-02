@@ -54,6 +54,7 @@ impl<'a> System<'a> for MinMaxGraphSys {
         ReadStorage<'a, YVelGraph>,
         ReadStorage<'a, XPosGraph>,
         ReadStorage<'a, YPosGraph>,
+        Read<'a, Paused>,
         Write<'a, GraphMinMax>,
     );
 
@@ -66,9 +67,14 @@ impl<'a> System<'a> for MinMaxGraphSys {
             yvel_graphs,
             xpos_graphs,
             ypos_graphs,
+            paused,
             mut min_max,
         ): Self::SystemData,
     ) {
+        if paused.0 {
+            return;
+        }
+
         let (mut min, mut max) = (std::f32::INFINITY, std::f32::NEG_INFINITY);
 
         macro_rules! minmax_graph_storage {
@@ -143,10 +149,15 @@ where
     type SystemData = (
         WriteStorage<'a, T>,
         ReadStorage<'a, PhysicsBody>,
+        Read<'a, Paused>,
         Option<Read<'a, BodySet>>,
     );
 
-    fn run(&mut self, (mut graphs, physics_bodies, body_set): Self::SystemData) {
+    fn run(&mut self, (mut graphs, physics_bodies, paused, body_set): Self::SystemData) {
+        if paused.0 {
+            return;
+        }
+
         (&mut graphs, &physics_bodies)
             .join()
             .for_each(|(graph, physics_body)| {
