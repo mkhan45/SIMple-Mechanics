@@ -5,7 +5,7 @@ use crate::{BodySet, MechanicalWorld, RigidBody, Selected};
 
 use crate::components::*;
 use crate::gui::graphs::{
-    LineGraph, RotVelGraph, SpeedGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph,
+    LineGraph, RotGraph, RotVelGraph, SpeedGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph,
 };
 
 use crate::{resources::*, Vector};
@@ -53,6 +53,7 @@ impl<'a> System<'a> for MinMaxGraphSys {
         ReadStorage<'a, YVelGraph>,
         ReadStorage<'a, XPosGraph>,
         ReadStorage<'a, YPosGraph>,
+        ReadStorage<'a, RotGraph>,
         Read<'a, Paused>,
         Write<'a, GraphMinMax>,
     );
@@ -66,6 +67,7 @@ impl<'a> System<'a> for MinMaxGraphSys {
             yvel_graphs,
             xpos_graphs,
             ypos_graphs,
+            rot_graphs,
             paused,
             mut min_max,
         ): Self::SystemData,
@@ -93,6 +95,7 @@ impl<'a> System<'a> for MinMaxGraphSys {
         minmax_graph_storage!(yvel_graphs);
         minmax_graph_storage!(xpos_graphs);
         minmax_graph_storage!(ypos_graphs);
+        minmax_graph_storage!(rot_graphs);
 
         min_max.0 = min;
         min_max.1 = max;
@@ -179,3 +182,4 @@ pub type XVelGraphSys = LineGraphSys<XVelGraph>;
 pub type YVelGraphSys = LineGraphSys<YVelGraph>;
 pub type XPosGraphSys = LineGraphSys<XPosGraph>;
 pub type YPosGraphSys = LineGraphSys<YPosGraph>;
+pub type RotGraphSys = LineGraphSys<RotGraph>;

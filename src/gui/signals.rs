@@ -2,7 +2,9 @@ use crate::MainState;
 
 use specs::prelude::*;
 
-use crate::gui::graphs::{RotVelGraph, SpeedGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph};
+use crate::gui::graphs::{
+    RotGraph, RotVelGraph, SpeedGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph,
+};
 use crate::resources::{CreationData, Paused, ShapeInfo};
 use crate::MechanicalWorld;
 
@@ -19,6 +21,7 @@ pub enum UiSignal {
     AddYVelGraph(Entity),
     AddXPosGraph(Entity),
     AddYPosGraph(Entity),
+    AddRotGraph(Entity),
     SerializeGraphs,
 }
 
@@ -75,6 +78,9 @@ impl<'a, 'b> MainState<'a, 'b> {
                 }
                 UiSignal::AddYPosGraph(entity) => {
                     add_graph_variant!(YPosGraph, entity);
+                }
+                UiSignal::AddRotGraph(entity) => {
+                    add_graph_variant!(RotGraph, entity);
                 }
                 UiSignal::SerializeGraphs => {}
             });

@@ -271,6 +271,7 @@ pub fn make_sidemenu(
             signal_button!("Graph Y Vel", UiSignal::AddYVelGraph(entity), ui, signals);
             signal_button!("Graph X Pos", UiSignal::AddXPosGraph(entity), ui, signals);
             signal_button!("Graph Y Pos", UiSignal::AddYPosGraph(entity), ui, signals);
+            signal_button!("Graph Rotation", UiSignal::AddRotGraph(entity), ui, signals);
         });
         signal_button!("Delete Shape", UiSignal::DeleteShape(entity), ui, signals);
     });

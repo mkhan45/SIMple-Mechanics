@@ -209,6 +209,12 @@ create_linegraph!(
     PointShape::Diamond,
     |rigid_body: &RigidBody| rigid_body.velocity().linear.y
 );
+create_linegraph!(
+    RotGraph,
+    "Rotation",
+    PointShape::Ring,
+    |rigid_body: &RigidBody| rigid_body.position().rotation.angle()
+);
 
 impl<'a, 'b> MainState<'a, 'b> {
     pub fn draw_graphs(&self) -> ([Text; 3], MeshBuilder) {
@@ -251,6 +257,7 @@ impl<'a, 'b> MainState<'a, 'b> {
         draw_graphtype!(YVelGraph);
         draw_graphtype!(XPosGraph);
         draw_graphtype!(YPosGraph);
+        draw_graphtype!(RotGraph);
 
         let max_text = graphics::Text::new(
             TextFragment::new(format!("{0:.3}", max)).scale(Scale::uniform(25.0)),

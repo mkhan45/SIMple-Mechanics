@@ -33,7 +33,7 @@ mod components;
 use components::*;
 
 use crate::{
-    gui::graphs::{RotVelGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph},
+    gui::graphs::{RotGraph, RotVelGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph},
     gui::gui_systems::*,
 };
 use resources::HiDPIFactor;
@@ -142,6 +142,7 @@ fn main() -> ggez::GameResult {
     world.register::<YVelGraph>();
     world.register::<XPosGraph>();
     world.register::<YPosGraph>();
+    world.register::<RotGraph>();
 
     let mut dispatcher = DispatcherBuilder::new()
         .with(SelectedMoveSys, "selected_move_sys", &[])
@@ -151,6 +152,7 @@ fn main() -> ggez::GameResult {
         .with(YPosGraphSys::default(), "y_pos_graph_sys", &[])
         .with(XVelGraphSys::default(), "x_vel_graph_sys", &[])
         .with(YVelGraphSys::default(), "y_vel_graph_sys", &[])
+        .with(RotGraphSys::default(), "rot_graph_sys", &[])
         .with(MinMaxGraphSys, "graph_minmax_sys", &["speed_graph_sys"])
         .with(GraphTransformSys, "graph_transform_sys", &[])
         .build();
