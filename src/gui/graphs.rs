@@ -10,12 +10,19 @@ use crate::{
     resources::{GraphMinMax, GraphPosData},
     RigidBody,
 };
-use graphics::{MeshBuilder, Rect, Scale, TextFragment};
+use graphics::{DrawMode, MeshBuilder, Rect, Scale, TextFragment};
 
 // use csv;
 
 pub trait Graph {
     fn draw(&self, builder: &mut MeshBuilder, color: graphics::Color, min_max: Option<(f32, f32)>);
+}
+
+pub enum PointShape {
+    Ring,
+    Dot,
+    Square,
+    Diamond,
 }
 
 pub trait LineGraph {
@@ -24,6 +31,7 @@ pub trait LineGraph {
     fn name(&self) -> String;
     fn shown(&self) -> bool;
     fn max_len(&self) -> usize;
+    fn point_shape(&self) -> PointShape;
     fn access_field(rigid_body: &RigidBody) -> f32
     where
         Self: Sized;
@@ -51,24 +59,59 @@ impl Graph for dyn LineGraph {
             (midpoint, scale_fac)
         });
 
-        if s0.len() + s1.len() >= 3 {
+        let graph_len = s0.len() + s1.len();
+        if graph_len >= 3 {
+            // having a match statement inside of a loop that runs
+            // hundreds to thousands of times per frame seems like a bad
+            // idea, so save the draw function.
+            // I'm not sure if this makes a significant performance
+            // difference. Having to essentially declare the type signature
+            // twice is kind of weird
+            //
+            // UPDATE: The number of points to draw is limited to 10 now so it's
+            // probably a performance loss
+            let mut draw_fn = match self.point_shape() {
+                PointShape::Dot => Box::new(|builder: &mut MeshBuilder, point: [f32; 2]| {
+                    builder.circle(DrawMode::fill(), point, 0.125, 0.0005, color);
+                })
+                    as Box<dyn FnMut(&mut MeshBuilder, [f32; 2]) -> ()>,
+                PointShape::Ring => Box::new(|builder: &mut MeshBuilder, point: [f32; 2]| {
+                    builder.circle(DrawMode::stroke(0.05), point, 0.15, 0.001, color);
+                })
+                    as Box<dyn FnMut(&mut MeshBuilder, [f32; 2]) -> ()>,
+                PointShape::Square => Box::new(|builder: &mut MeshBuilder, point: [f32; 2]| {
+                    builder.rectangle(
+                        DrawMode::fill(),
+                        Rect::new(point[0], point[1] - 0.1, 0.2, 0.2),
+                        color,
+                    );
+                })
+                    as Box<dyn FnMut(&mut MeshBuilder, [f32; 2]) -> ()>,
+                PointShape::Diamond => Box::new(|builder: &mut MeshBuilder, point: [f32; 2]| {
+                    builder.circle(DrawMode::fill(), point, 0.2, 0.1, color);
+                }),
+            };
+
+            let transformed_points = s0
+                .iter()
+                .chain(s1.iter())
+                .map(|[x, v]| [*x, 5.5 - (v - midpoint) * scale_fac])
+                .collect::<Vec<[f32; 2]>>();
+
             builder
-                .line(
-                    s0.iter()
-                        .chain(s1.iter())
-                        .map(|[x, v]| [*x, 5.5 - (v - midpoint) * scale_fac])
-                        .collect::<Vec<[f32; 2]>>()
-                        .as_slice(),
-                    0.1,
-                    color,
-                )
+                .line(transformed_points.as_slice(), 0.1, color)
                 .unwrap();
+
+            transformed_points
+                .iter()
+                .step_by((graph_len / 10).max(1))
+                .for_each(|point| draw_fn(builder, *point));
         }
     }
 }
 
 macro_rules! create_linegraph {
-    ($structname:ident, $name:expr, $access_closure:expr) => {
+    ($structname:ident, $name:expr, $point_shape:expr, $access_closure:expr) => {
         #[derive(Debug, Clone, Component)]
         #[storage(BTreeStorage)]
         pub struct $structname {
@@ -119,6 +162,10 @@ macro_rules! create_linegraph {
                 self.max_len
             }
 
+            fn point_shape(&self) -> PointShape {
+                $point_shape
+            }
+
             fn access_field(rigid_body: &RigidBody) -> f32 {
                 $access_closure(rigid_body)
             }
@@ -126,31 +173,42 @@ macro_rules! create_linegraph {
     };
 }
 
-create_linegraph!(SpeedGraph, "Speed", |rigid_body: &RigidBody| rigid_body
-    .velocity()
-    .linear
-    .norm());
+create_linegraph!(
+    SpeedGraph,
+    "Speed",
+    PointShape::Square,
+    |rigid_body: &RigidBody| rigid_body.velocity().linear.norm()
+);
 create_linegraph!(
     RotVelGraph,
     "Rotational Velocity",
+    PointShape::Dot,
     |rigid_body: &RigidBody| rigid_body.velocity().angular
 );
-create_linegraph!(XPosGraph, "X Position", |rigid_body: &RigidBody| rigid_body
-    .position()
-    .translation
-    .x);
-create_linegraph!(YPosGraph, "Y Position", |rigid_body: &RigidBody| rigid_body
-    .position()
-    .translation
-    .y);
-create_linegraph!(XVelGraph, "X Velocity", |rigid_body: &RigidBody| rigid_body
-    .velocity()
-    .linear
-    .x);
-create_linegraph!(YVelGraph, "Y Velocity", |rigid_body: &RigidBody| rigid_body
-    .velocity()
-    .linear
-    .y);
+create_linegraph!(
+    XPosGraph,
+    "X Position",
+    PointShape::Ring,
+    |rigid_body: &RigidBody| rigid_body.position().translation.x
+);
+create_linegraph!(
+    YPosGraph,
+    "Y Position",
+    PointShape::Ring,
+    |rigid_body: &RigidBody| rigid_body.position().translation.y
+);
+create_linegraph!(
+    XVelGraph,
+    "X Velocity",
+    PointShape::Diamond,
+    |rigid_body: &RigidBody| rigid_body.velocity().linear.x
+);
+create_linegraph!(
+    YVelGraph,
+    "Y Velocity",
+    PointShape::Diamond,
+    |rigid_body: &RigidBody| rigid_body.velocity().linear.y
+);
 
 impl<'a, 'b> MainState<'a, 'b> {
     pub fn draw_graphs(&self) -> ([Text; 3], MeshBuilder) {
@@ -220,7 +278,7 @@ impl<'a, 'b> MainState<'a, 'b> {
 }
 
 fn draw_graph_frame(builder: &mut MeshBuilder) {
-    use ggez::graphics::{DrawMode, BLACK, WHITE};
+    use ggez::graphics::{BLACK, WHITE};
     builder.rectangle(
         DrawMode::stroke(0.1),
         Rect::new(0.0, 0.0, 10.0, 10.0),

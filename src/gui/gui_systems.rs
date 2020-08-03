@@ -138,7 +138,7 @@ pub struct LineGraphSys<T>
 where
     T: LineGraph + Component,
 {
-    phantom_data: std::marker::PhantomData<T>,
+    _phantom_data: std::marker::PhantomData<T>,
 }
 
 impl<'a, T> System<'a> for LineGraphSys<T>
