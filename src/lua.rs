@@ -1,11 +1,16 @@
 use crate::main_state::{body_builder::BodyBuilder, MainState};
 use crate::resources::LuaRes;
 
-use crate::components::Name;
+use crate::components::{Collider, Name, PhysicsBody};
 use crate::resources::{self, ShapeInfo};
 
-use crate::{MechanicalWorld, Vector};
+use crate::{BodySet, ColliderSet, MechanicalWorld, RigidBody, Vector};
+use np::material::BasicMaterial;
+use np::object::Body;
 use nphysics2d as np;
+
+use nc::shape::{Ball, Cuboid};
+use ncollide2d as nc;
 
 use resources::Paused;
 use specs::prelude::*;
@@ -121,6 +126,74 @@ impl<'a, 'b> MainState<'a, 'b> {
 
             let shapes: Vec<rlua::Table> = Vec::new();
             globals.set("shapes", shapes).unwrap();
+        });
+    }
+
+    pub fn export_lua(&self, filename: impl AsRef<std::path::Path> + std::clone::Clone) {
+        let mut body_string = String::with_capacity(48);
+
+        let physics_bodies = self.world.read_storage::<PhysicsBody>();
+        let body_set = self.world.fetch::<BodySet>();
+
+        let colliders = self.world.read_storage::<Collider>();
+        let collider_set = self.world.fetch::<ColliderSet>();
+
+        let mut first = true;
+
+        (&physics_bodies, &colliders).join().for_each(|(physics_body_handle, collider_handle)|{
+            if !first {
+                body_string.push_str(",\n\t");
+            } else {
+                first = false;
+            }
+
+            let rigid_body = body_set.get(physics_body_handle.body_handle).unwrap().downcast_ref::<RigidBody>().unwrap();
+            let collider = collider_set.get(collider_handle.coll_handle).unwrap();
+
+            let (shape_info_str, shape_str) = {
+                let shape = collider.shape();
+                if shape.is_shape::<Ball<f32>>() {
+                    let ball = shape.downcast_ref::<Ball<f32>>().unwrap_or_else(|| unreachable!());
+                    let shape_info_str = format!("radius = {}", ball.radius());
+                    (shape_info_str, "Circle")
+                } else if shape.is_shape::<Cuboid<f32>>() {
+                    let cuboid = shape.downcast_ref::<Cuboid<f32>>().unwrap_or_else(|| unreachable!());
+                    let half_extents = cuboid.half_extents();
+                    let shape_info_str = format!("w = {}, h = {}", half_extents.x * 2.0, half_extents.y * 2.0);
+                    (shape_info_str, "Rect")
+                } else {
+                    panic!("Serialize invalid shape")
+                }
+            };
+
+            let position = rigid_body.position();
+            let velocity = rigid_body.velocity();
+
+            let material = collider.material().downcast_ref::<BasicMaterial<f32>>().unwrap();
+
+            let status_str = match rigid_body.status() {
+                np::object::BodyStatus::Static => "static",
+                np::object::BodyStatus::Dynamic => "dynamic",
+                _ => panic!("Invalid body status for serialization"),
+            };
+
+            body_string.push_str(
+                format!(
+                    "{{shape = {shape_str}, x = {x:.prec$}, y = {y:.prec$}, rotation = {rotation:.prec$}, x_vel = {x_vel:.prec$}, y_vel = {y_vel:.prec$}, rotvel = {rotvel:.prec$}, {shape_info_str}, mass = {mass:.prec$}, friction = {friction:.prec$}, elasticity = {elasticity:.prec$}, status = {status}}}",
+                    shape_str = shape_str,
+                    x = position.translation.x,
+                    y = position.translation.y,
+                    rotation = position.rotation.angle(),
+                    x_vel = velocity.linear.x,
+                    y_vel = velocity.linear.y,
+                    rotvel = velocity.angular,
+                    shape_info_str = shape_info_str,
+                    mass = rigid_body.augmented_mass().linear,
+                    friction = material.friction,
+                    elasticity = material.restitution,
+                    status = status_str,
+                    prec = 3,
+                ).as_str())
         });
     }
 
