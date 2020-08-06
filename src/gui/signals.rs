@@ -23,6 +23,7 @@ pub enum UiSignal {
     AddYPosGraph(Entity),
     AddRotGraph(Entity),
     SerializeGraphs,
+    SerializeState,
 }
 
 impl<'a, 'b> MainState<'a, 'b> {
@@ -83,6 +84,9 @@ impl<'a, 'b> MainState<'a, 'b> {
                     add_graph_variant!(RotGraph, entity);
                 }
                 UiSignal::SerializeGraphs => {}
+                UiSignal::SerializeState => {
+                    self.export_lua("lua/test.lua");
+                }
             });
         self.imgui_wrapper.sent_signals.clear();
 

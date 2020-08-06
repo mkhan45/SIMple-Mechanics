@@ -142,6 +142,7 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
         });
 
         signal_button!("Serialize Graphs", UiSignal::SerializeGraphs, ui, signals);
+        signal_button!("Save Scene", UiSignal::SerializeState, ui, signals);
     });
 }
 

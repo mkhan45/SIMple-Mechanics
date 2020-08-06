@@ -154,12 +154,12 @@ impl<'a, 'b> MainState<'a, 'b> {
                 let shape = collider.shape();
                 if shape.is_shape::<Ball<f32>>() {
                     let ball = shape.downcast_ref::<Ball<f32>>().unwrap_or_else(|| unreachable!());
-                    let shape_info_str = format!("radius = {}", ball.radius());
+                    let shape_info_str = format!("r = {}", ball.radius());
                     (shape_info_str, "Circle")
                 } else if shape.is_shape::<Cuboid<f32>>() {
                     let cuboid = shape.downcast_ref::<Cuboid<f32>>().unwrap_or_else(|| unreachable!());
                     let half_extents = cuboid.half_extents();
-                    let shape_info_str = format!("w = {}, h = {}", half_extents.x * 2.0, half_extents.y * 2.0);
+                    let shape_info_str = format!("w = {}, h = {}", half_extents.x, half_extents.y);
                     (shape_info_str, "Rect")
                 } else {
                     panic!("Serialize invalid shape")
@@ -179,7 +179,7 @@ impl<'a, 'b> MainState<'a, 'b> {
 
             body_string.push_str(
                 format!(
-                    "{{shape = {shape_str}, x = {x:.prec$}, y = {y:.prec$}, rotation = {rotation:.prec$}, x_vel = {x_vel:.prec$}, y_vel = {y_vel:.prec$}, rotvel = {rotvel:.prec$}, {shape_info_str}, mass = {mass:.prec$}, friction = {friction:.prec$}, elasticity = {elasticity:.prec$}, status = {status}}}",
+                    "{{shape = \"{shape_str}\", x = {x:.prec$}, y = {y:.prec$}, rotation = {rotation:.prec$}, x_vel = {x_vel:.prec$}, y_vel = {y_vel:.prec$}, rotvel = {rotvel:.prec$}, {shape_info_str}, mass = {mass:.prec$}, friction = {friction:.prec$}, elasticity = {elasticity:.prec$}, status = \"{status}\"}}",
                     shape_str = shape_str,
                     x = position.translation.x,
                     y = position.translation.y,
@@ -195,6 +195,8 @@ impl<'a, 'b> MainState<'a, 'b> {
                     prec = 3,
                 ).as_str())
         });
+
+        std::fs::write(filename, format!("add_shapes(\n\t{}\n)", body_string)).unwrap();
     }
 
     pub fn lua_update(&mut self) {
