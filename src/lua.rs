@@ -196,7 +196,18 @@ impl<'a, 'b> MainState<'a, 'b> {
                 ).as_str())
         });
 
-        std::fs::write(filename, format!("add_shapes(\n\t{}\n)", body_string)).unwrap();
+        let body_string = format!("add_shapes(\n\t{}\n)\n", body_string);
+
+        let mut consts_str = String::with_capacity(48);
+        let gravity = {
+            let mech_world = self.world.fetch::<MechanicalWorld>();
+            mech_world.gravity.y
+        };
+        consts_str.push_str(format!("GRAVITY = {}\n", gravity).as_str());
+
+        let lua_string = format!("{}\n{}", body_string, consts_str);
+
+        std::fs::write(filename, lua_string).unwrap();
     }
 
     pub fn lua_update(&mut self) {
