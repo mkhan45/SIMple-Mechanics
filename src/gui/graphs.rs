@@ -1,11 +1,12 @@
 use ggez::graphics::{self, Text};
+use specs::prelude::*;
 use specs::storage::BTreeStorage;
 use specs::Component;
 
 use std::collections::VecDeque;
 
 use crate::{
-    components,
+    components::{self, Name},
     main_state::MainState,
     resources::{GraphMinMax, GraphPosData},
     RigidBody,
@@ -281,6 +282,46 @@ impl<'a, 'b> MainState<'a, 'b> {
             0.5 * scale_fac,
             0.5 * scale_fac,
         )
+    }
+
+    pub fn serialize_graphs_to_csv(&self, filename: impl AsRef<std::path::Path> + std::clone::Clone) {
+        struct Column {
+            name: String,
+            data: Vec<f32>,
+        }
+
+        let mut columns: Vec<Column> = Vec::new();
+        let names = self.world.read_storage::<Name>();
+
+        macro_rules! add_linegraph_columns {
+            ($graphtype:ty) => {
+                let graphs = self.world.read_storage::<$graphtype>();
+                (&graphs, &names).join().for_each(|(graph, name)|{
+                    let data = {
+                        let (s0, s1) = graph.points();
+                        s0.iter().chain(s1.iter()).map(|[_, val]| *val).collect::<Vec<f32>>()
+                    };
+                    let column = Column {
+                        name: format!("{} {}", name.0, graph.name()),
+                        data,
+                    };
+
+                    columns.push(column);
+                });
+            }
+        }
+
+        add_linegraph_columns!(SpeedGraph);
+        add_linegraph_columns!(RotGraph);
+        add_linegraph_columns!(XPosGraph);
+        add_linegraph_columns!(YPosGraph);
+        add_linegraph_columns!(XVelGraph);
+        add_linegraph_columns!(YVelGraph);
+        add_linegraph_columns!(RotVelGraph);
+
+        let mut writer = csv::Writer::from_path(filename);
+
+        // not sure what do do after this
     }
 }
 

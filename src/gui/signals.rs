@@ -83,7 +83,9 @@ impl<'a, 'b> MainState<'a, 'b> {
                 UiSignal::AddRotGraph(entity) => {
                     add_graph_variant!(RotGraph, entity);
                 }
-                UiSignal::SerializeGraphs => {}
+                UiSignal::SerializeGraphs => {
+                    self.serialize_graphs_to_csv("out.csv");
+                }
                 UiSignal::SerializeState => {
                     self.export_lua("lua/test.lua");
                 }
