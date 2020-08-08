@@ -186,8 +186,6 @@ pub fn make_sidemenu(
         .movable(false);
 
     win.build(ui, || {
-        ui.text(im_str!("\nObject Info"));
-
         let mut name_buff = match names.get(entity) {
             Some(name) => ImString::new(name.0.clone()),
             None => ImString::new(""),
