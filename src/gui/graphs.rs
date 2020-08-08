@@ -75,11 +75,11 @@ impl Graph for dyn LineGraph {
                 PointShape::Dot => Box::new(|builder: &mut MeshBuilder, point: [f32; 2]| {
                     builder.circle(DrawMode::fill(), point, 0.125, 0.0005, color);
                 })
-                    as Box<dyn FnMut(&mut MeshBuilder, [f32; 2]) -> ()>,
+                    as Box<dyn FnMut(&mut MeshBuilder, [f32; 2])>,
                 PointShape::Ring => Box::new(|builder: &mut MeshBuilder, point: [f32; 2]| {
                     builder.circle(DrawMode::stroke(0.05), point, 0.15, 0.001, color);
                 })
-                    as Box<dyn FnMut(&mut MeshBuilder, [f32; 2]) -> ()>,
+                    as Box<dyn FnMut(&mut MeshBuilder, [f32; 2])>,
                 PointShape::Square => Box::new(|builder: &mut MeshBuilder, point: [f32; 2]| {
                     builder.rectangle(
                         DrawMode::fill(),
@@ -87,7 +87,7 @@ impl Graph for dyn LineGraph {
                         color,
                     );
                 })
-                    as Box<dyn FnMut(&mut MeshBuilder, [f32; 2]) -> ()>,
+                    as Box<dyn FnMut(&mut MeshBuilder, [f32; 2])>,
                 PointShape::Diamond => Box::new(|builder: &mut MeshBuilder, point: [f32; 2]| {
                     builder.circle(DrawMode::fill(), point, 0.2, 0.1, color);
                 }),
@@ -353,7 +353,7 @@ impl<'a, 'b> MainState<'a, 'b> {
                     record_iter
                         .next()
                         .map(|val| format!("{:.3}", val))
-                        .unwrap_or("".to_string())
+                        .unwrap_or_else(|| "".to_string())
                 })
                 .collect::<Vec<String>>();
 
