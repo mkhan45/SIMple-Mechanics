@@ -284,7 +284,10 @@ impl<'a, 'b> MainState<'a, 'b> {
         )
     }
 
-    pub fn serialize_graphs_to_csv(&self, filename: impl AsRef<std::path::Path> + std::clone::Clone) {
+    pub fn serialize_graphs_to_csv(
+        &self,
+        filename: impl AsRef<std::path::Path> + std::clone::Clone,
+    ) {
         struct Column {
             name: String,
             data: Vec<f32>,
@@ -296,10 +299,13 @@ impl<'a, 'b> MainState<'a, 'b> {
         macro_rules! add_linegraph_columns {
             ($graphtype:ty) => {
                 let graphs = self.world.read_storage::<$graphtype>();
-                (&graphs, &names).join().for_each(|(graph, name)|{
+                (&graphs, &names).join().for_each(|(graph, name)| {
                     let data = {
                         let (s0, s1) = graph.points();
-                        s0.iter().chain(s1.iter()).map(|[_, val]| *val).collect::<Vec<f32>>()
+                        s0.iter()
+                            .chain(s1.iter())
+                            .map(|[_, val]| *val)
+                            .collect::<Vec<f32>>()
                     };
                     let column = Column {
                         name: format!("{} {}", name.0, graph.name()),
@@ -308,7 +314,7 @@ impl<'a, 'b> MainState<'a, 'b> {
 
                     columns.push(column);
                 });
-            }
+            };
         }
 
         add_linegraph_columns!(SpeedGraph);
@@ -319,9 +325,46 @@ impl<'a, 'b> MainState<'a, 'b> {
         add_linegraph_columns!(YVelGraph);
         add_linegraph_columns!(RotVelGraph);
 
-        let mut writer = csv::Writer::from_path(filename);
+        let mut writer = csv::Writer::from_path(filename).expect("error creating csv writer");
 
-        // not sure what do do after this
+        let names = columns
+            .iter()
+            .map(|column| column.name.clone())
+            .collect::<Vec<String>>();
+        writer
+            .write_record(&names)
+            .expect("Error writing header record");
+
+        // i hate this a little bit
+        // CSVs work row by row (because files are top to bottom)
+        // Because of that, I make an iterator for each column 
+        // and call .next() on each iterator at each row to get the column
+        // value
+        type RecordIter<'a> = Box<std::slice::Iter<'a, f32>>;
+        let mut iter_ls = columns
+            .iter()
+            .map(|column| Box::new(column.data.iter()) as RecordIter)
+            .collect::<Vec<RecordIter>>();
+
+        loop {
+            let record = iter_ls
+                .iter_mut()
+                .map(|record_iter| {
+                    record_iter
+                        .next()
+                        .map(|val| format!("{:.3}", val))
+                        .unwrap_or("".to_string())
+                })
+                .collect::<Vec<String>>();
+
+            if record.iter().all(|val| val == &"".to_string()) {
+                break;
+            }
+
+            writer
+                .write_record(record.as_slice())
+                .expect("Error writing data record");
+        }
     }
 }
 
