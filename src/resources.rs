@@ -25,6 +25,7 @@ impl Default for Resolution {
 pub struct DT(pub std::time::Duration);
 
 #[derive(Clone, PartialEq, Debug)]
+#[allow(dead_code)]
 pub enum ShapeInfo {
     Rectangle(Option<Vector>),
     Circle(Option<f32>),

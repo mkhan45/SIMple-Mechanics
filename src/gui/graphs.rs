@@ -337,7 +337,7 @@ impl<'a, 'b> MainState<'a, 'b> {
 
         // i hate this a little bit
         // CSVs work row by row (because files are top to bottom)
-        // Because of that, I make an iterator for each column 
+        // Because of that, I make an iterator for each column
         // and call .next() on each iterator at each row to get the column
         // value
         type RecordIter<'a> = Box<std::slice::Iter<'a, f32>>;
