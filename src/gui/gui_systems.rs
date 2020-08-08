@@ -1,7 +1,7 @@
 #![allow(clippy::type_complexity)]
 use specs::prelude::*;
 
-use crate::{BodySet, MechanicalWorld, RigidBody, Selected};
+use crate::{BodySet, ColliderSet, MechanicalWorld, RigidBody, Selected};
 
 use crate::components::*;
 use crate::gui::graphs::{
@@ -15,32 +15,66 @@ impl<'a> System<'a> for SelectedMoveSys {
     type SystemData = (
         ReadStorage<'a, Selected>,
         ReadStorage<'a, PhysicsBody>,
+        ReadStorage<'a, Collider>,
         Read<'a, MousePos>,
+        Read<'a, Paused>,
+        Option<Write<'a, ColliderSet>>,
         Option<Read<'a, MechanicalWorld>>,
         Option<Write<'a, BodySet>>,
     );
 
     fn run(
         &mut self,
-        (selected, physics_body, mouse_pos, mechanical_world, mut body_set): Self::SystemData,
+        (
+            selected,
+            physics_bodies,
+            colliders,
+            mouse_pos,
+            paused,
+            collider_set,
+            mechanical_world,
+            mut body_set,
+        ): Self::SystemData,
     ) {
-        (&selected, &physics_body)
-            .join()
-            .for_each(|(_, physics_body)| {
-                let body_set = body_set.as_mut().unwrap();
-                let rigid_body = body_set
-                    .get_mut(physics_body.body_handle)
-                    .unwrap()
-                    .downcast_mut::<RigidBody>()
-                    .unwrap();
+        let body_set = body_set.as_mut().unwrap();
+        let mut collider_set = collider_set.unwrap();
 
-                let pos = rigid_body.position().translation.vector;
-                let new_vel = mouse_pos.0 - pos;
+        // If not paused ,change velocity. If paused, change position directly and set velocity to
+        // 0
+        if !paused.0 {
+            (&selected, &physics_bodies)
+                .join()
+                .for_each(|(_, physics_body)| {
+                    let rigid_body = body_set
+                        .get_mut(physics_body.body_handle)
+                        .unwrap()
+                        .downcast_mut::<RigidBody>()
+                        .unwrap();
 
-                let physics_step = mechanical_world.as_ref().unwrap().timestep();
+                    let pos = rigid_body.position().translation.vector;
+                    let new_vel = mouse_pos.0 - pos;
+                    let physics_step = mechanical_world.as_ref().unwrap().timestep();
+                    rigid_body.set_linear_velocity(new_vel / physics_step);
+                });
+        } else {
+            (&selected, &physics_bodies, &colliders).join().for_each(
+                |(_, physics_body, collider_handle)| {
+                    let rigid_body = body_set
+                        .get_mut(physics_body.body_handle)
+                        .unwrap()
+                        .downcast_mut::<RigidBody>()
+                        .unwrap();
+                    let collider = collider_set.get_mut(collider_handle.coll_handle);
 
-                rigid_body.set_linear_velocity(new_vel / physics_step);
-            });
+                    let mut rigid_body_isometry = *rigid_body.position();
+                    rigid_body_isometry.translation.vector = mouse_pos.0;
+                    rigid_body.set_position(rigid_body_isometry);
+
+                    collider.unwrap().set_position(rigid_body_isometry);
+                    rigid_body.set_linear_velocity(Vector::new(0.0, 0.0));
+                },
+            );
+        }
     }
 }
 
