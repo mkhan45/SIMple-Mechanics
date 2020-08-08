@@ -9,7 +9,10 @@ Educational physics sim that uses graphs, FBDs, and other helpful stuff to teach
 - [X] Basic Lua scripting for saving presets
 - [X] Create shapes
 - [X] View and modify shape properties such as velocity through a GUI
-- [ ] Graph object properties
+- [X] Graph object properties
+- [X] Export graphs to CSV
+
+#### In a future release:
 - [ ] Free body diagrams
 - [ ] Convex polygons
 - [ ] Ropes
@@ -25,6 +28,7 @@ Educational physics sim that uses graphs, FBDs, and other helpful stuff to teach
   - Clear the scene
   - Pause
   - Load Lua files
+  - Export graphs to CSV
   
 ## gifs
 ![](demo.gif)
