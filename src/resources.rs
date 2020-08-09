@@ -83,3 +83,6 @@ pub struct MovingGraph(pub bool);
 
 #[derive(Copy, Clone, Default)]
 pub struct ScalingGraph(pub bool);
+
+#[derive(Copy, Clone, Default)]
+pub struct Selected(pub Option<specs::Entity>);

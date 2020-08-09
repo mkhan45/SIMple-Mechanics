@@ -62,7 +62,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             collider_set.remove(collider_handle.coll_handle);
         }
 
-        self.imgui_wrapper.remove_sidemenu(&entity);
+        self.imgui_wrapper.remove_sidemenu();
 
         self.world.delete_entity(entity).unwrap();
     }
@@ -104,6 +104,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             let info_displayed = self.world.read_storage::<InfoDisplayed>();
             let entities = self.world.entities();
             if let Some((_, entity)) = (&info_displayed, &entities).join().next() {
+                self.imgui_wrapper.remove_sidemenu();
                 self.imgui_wrapper
                     .shown_menus
                     .insert(UiChoice::SideMenu(Some(entity)));
@@ -145,7 +146,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             let colors = self.world.read_storage::<crate::components::Color>();
             let collider_set = self.world.fetch::<ColliderSet>();
 
-            let selected = self.world.read_storage::<Selected>();
+            let selected = self.world.fetch::<resources::Selected>().0;
 
             (&colliders, &colors, &entities)
                 .join()
@@ -168,15 +169,17 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
                         draw_circle(&mut mesh_builder, pos, rot, shape.radius(), color.0, false);
 
-                        if selected.get(e).is_some() {
-                            draw_circle(
-                                &mut mesh_builder,
-                                pos,
-                                rot,
-                                shape.radius(),
-                                Color::new(1.0, 0.0, 0.0, 1.0),
-                                true,
-                            );
+                        if let Some(selected) = selected {
+                            if selected == e {
+                                draw_circle(
+                                    &mut mesh_builder,
+                                    pos,
+                                    rot,
+                                    shape.radius(),
+                                    Color::new(1.0, 0.0, 0.0, 1.0),
+                                    true,
+                                );
+                            }
                         }
                     } else if collider.shape().is_shape::<nc::shape::Cuboid<f32>>() {
                         let shape = collider
@@ -193,15 +196,17 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                             false,
                         );
 
-                        if selected.get(e).is_some() {
-                            draw_rect(
-                                &mut mesh_builder,
-                                pos,
-                                rot,
-                                *shape.half_extents(),
-                                graphics::Color::new(1.0, 0.0, 0.0, 1.0),
-                                true,
-                            );
+                        if let Some(selected) = selected {
+                            if selected == e {
+                                draw_rect(
+                                    &mut mesh_builder,
+                                    pos,
+                                    rot,
+                                    *shape.half_extents(),
+                                    graphics::Color::new(1.0, 0.0, 0.0, 1.0),
+                                    true,
+                                );
+                            }
                         }
                     }
                 });
@@ -343,11 +348,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                     }
                 }
 
-                {
-                    let mut selected = self.world.write_storage::<Selected>();
-                    if let Some(entity) = get_hovered_shape(&self.world) {
-                        selected.insert(entity, Selected::default()).unwrap();
-                    }
+                if let Some(entity) = get_hovered_shape(&self.world) {
+                    self.world.insert(resources::Selected(Some(entity)));
                 }
 
                 {
@@ -374,7 +376,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         Some(entity) => {
                             if info_displayed.get(entity).is_some() {
                                 info_displayed.remove(entity).unwrap();
-                                self.imgui_wrapper.remove_sidemenu(&entity);
+                                self.imgui_wrapper.remove_sidemenu();
                             } else {
                                 info_displayed
                                     .insert(entity, InfoDisplayed::default())
@@ -425,10 +427,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         self.imgui_wrapper.update_mouse_down((false, false, false));
         match btn {
             MouseButton::Left => {
-                {
-                    let mut selected = self.world.write_storage::<Selected>();
-                    selected.clear();
-                }
+                self.world.insert(resources::Selected(None));
 
                 self.world.insert(MovingGraph(false));
 
@@ -562,14 +561,20 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         keymods: KeyMods,
         _repeat: bool,
     ) {
-        match btn {
-            KeyCode::B => {
+        match (btn, keymods) {
+            (KeyCode::B, _) => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Rectangle(None))));
             }
-            KeyCode::C => {
+            (KeyCode::C, _) => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Circle(None))));
+            }
+            (KeyCode::Space, _) => {
+                self.world.fetch_mut::<Paused>().toggle();
+            }
+            (KeyCode::D, KeyMods::CTRL) => {
+                self.world.delete_all();
             }
             _ => {}
         }

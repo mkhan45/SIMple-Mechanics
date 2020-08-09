@@ -166,11 +166,9 @@ impl ImGuiWrapper {
             .unwrap();
     }
 
-    pub fn remove_sidemenu(&mut self, entity: &Entity) {
-        self.shown_menus.retain(|menu| match menu {
-            UiChoice::SideMenu(Some(menu_entity)) => menu_entity != entity,
-            _ => true,
-        });
+    pub fn remove_sidemenu(&mut self) {
+        self.shown_menus
+            .retain(|menu| !matches!(menu, UiChoice::SideMenu(_)));
     }
 
     fn update_mouse(&mut self) {

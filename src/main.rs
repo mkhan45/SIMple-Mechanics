@@ -47,7 +47,13 @@ fn main() -> ggez::GameResult {
         .window_setup(ggez::conf::WindowSetup::default().title("Physics"))
         .build()
         .unwrap();
-    ggez::graphics::set_mode(ctx, ggez::conf::WindowMode::default().resizable(true))?;
+    ggez::graphics::set_mode(
+        ctx,
+        ggez::conf::WindowMode::default()
+            .maximized(true)
+            .resizable(true)
+            .fullscreen_type(ggez::conf::FullscreenType::Windowed),
+    )?;
 
     let mut world = specs::World::new();
 
@@ -129,10 +135,10 @@ fn main() -> ggez::GameResult {
     world.insert(std::sync::Arc::new(std::sync::Mutex::new(lua)));
     world.insert(resources::FPS(60.0));
     world.insert(resources::DT(std::time::Duration::from_millis(16)));
+    world.insert(resources::Selected(None));
 
     world.register::<PhysicsBody>();
     world.register::<Collider>();
-    world.register::<Selected>();
     world.register::<InfoDisplayed>();
     world.register::<Color>();
     world.register::<Name>();
