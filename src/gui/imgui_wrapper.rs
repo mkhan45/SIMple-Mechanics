@@ -30,7 +30,7 @@ pub struct MouseState {
 #[allow(dead_code)]
 pub enum UiChoice {
     DefaultUI,
-    SideMenu(Option<Entity>),
+    SideMenu(Entity),
     Graph(Entity),
 }
 
@@ -144,7 +144,7 @@ impl ImGuiWrapper {
                 #[allow(unreachable_patterns)]
                 match menu {
                     UiChoice::DefaultUI => make_default_ui(&mut ui),
-                    UiChoice::SideMenu(Some(entity)) => {
+                    UiChoice::SideMenu(entity) => {
                         make_sidemenu(&mut ui, world, *entity, &mut self.sent_signals)
                     }
                     _ => unimplemented!(),
@@ -166,11 +166,9 @@ impl ImGuiWrapper {
             .unwrap();
     }
 
-    pub fn remove_sidemenu(&mut self, entity: &Entity) {
-        self.shown_menus.retain(|menu| match menu {
-            UiChoice::SideMenu(Some(menu_entity)) => menu_entity != entity,
-            _ => true,
-        });
+    pub fn remove_sidemenu(&mut self) {
+        self.shown_menus
+            .retain(|menu| !matches!(menu, UiChoice::SideMenu(_)));
     }
 
     fn update_mouse(&mut self) {

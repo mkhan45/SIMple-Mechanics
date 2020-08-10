@@ -35,7 +35,18 @@ pub enum ShapeInfo {
 
 pub struct CreationData(pub Option<ShapeInfo>);
 pub struct CreateShapeCentered(pub bool);
+impl CreateShapeCentered {
+    pub fn toggle(&mut self) {
+        self.0 = !self.0;
+    }
+}
+
 pub struct CreateShapeStatic(pub bool);
+impl CreateShapeStatic {
+    pub fn toggle(&mut self) {
+        self.0 = !self.0;
+    }
+}
 
 pub type LuaRes = std::sync::Arc<std::sync::Mutex<rlua::Lua>>;
 
@@ -83,3 +94,6 @@ pub struct MovingGraph(pub bool);
 
 #[derive(Copy, Clone, Default)]
 pub struct ScalingGraph(pub bool);
+
+#[derive(Copy, Clone, Default)]
+pub struct Selected(pub Option<specs::Entity>);

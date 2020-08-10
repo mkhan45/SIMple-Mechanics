@@ -74,8 +74,7 @@ impl Graph for dyn LineGraph {
             let mut draw_fn = match self.point_shape() {
                 PointShape::Dot => Box::new(|builder: &mut MeshBuilder, point: [f32; 2]| {
                     builder.circle(DrawMode::fill(), point, 0.125, 0.0005, color);
-                })
-                    as Box<dyn FnMut(&mut MeshBuilder, [f32; 2])>,
+                }) as Box<dyn FnMut(&mut MeshBuilder, [f32; 2])>,
                 PointShape::Ring => Box::new(|builder: &mut MeshBuilder, point: [f32; 2]| {
                     builder.circle(DrawMode::stroke(0.05), point, 0.15, 0.001, color);
                 })

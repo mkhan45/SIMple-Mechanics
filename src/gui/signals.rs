@@ -47,7 +47,7 @@ impl<'a, 'b> MainState<'a, 'b> {
                 }
                 UiSignal::DeleteShape(entity) => {
                     self.delete_entity(*entity);
-                    self.imgui_wrapper.remove_sidemenu(entity);
+                    self.imgui_wrapper.remove_sidemenu();
                 }
                 UiSignal::DeleteAll => {
                     self.delete_all();
