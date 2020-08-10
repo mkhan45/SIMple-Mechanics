@@ -27,7 +27,7 @@ macro_rules! signal_button {
 
 pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mut World) {
     ui.main_menu_bar(|| {
-        ui.menu(im_str!("Create Shape"), true, || {
+        ui.menu(im_str!("Create"), true, || {
             ui.drag_float(im_str!("Mass"), &mut world.fetch_mut::<CreateMass>().0)
                 .min(0.001)
                 .max(250.0)
@@ -88,7 +88,9 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
             // );
         });
 
-        ui.menu(im_str!("Global Variables"), true, || {
+        ui.separator();
+
+        ui.menu(im_str!("Settings"), true, || {
             let mut mechanical_world = world.fetch_mut::<MechanicalWorld>();
 
             let mut timestep = mechanical_world.timestep();
@@ -114,8 +116,12 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
             }
         });
 
-        signal_button!("Clear Scene", UiSignal::DeleteAll, ui, signals);
+        ui.separator();
+
+        signal_button!("Clear", UiSignal::DeleteAll, ui, signals);
+        ui.separator();
         signal_button!("Pause", UiSignal::TogglePause, ui, signals);
+        ui.separator();
 
         ui.menu(im_str!("Load"), true, || {
             let dir = std::path::Path::new("./lua");
@@ -140,8 +146,10 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
                 Err(e) => println!("Error reading dir: {}", e),
             }
         });
+        ui.separator();
 
-        signal_button!("Serialize Graphs", UiSignal::SerializeGraphs, ui, signals);
+        signal_button!("Save Graphs", UiSignal::SerializeGraphs, ui, signals);
+        ui.separator();
         signal_button!("Save Scene", UiSignal::SerializeState, ui, signals);
     });
 }
