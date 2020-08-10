@@ -97,3 +97,9 @@ pub struct ScalingGraph(pub bool);
 
 #[derive(Copy, Clone, Default)]
 pub struct Selected(pub Option<specs::Entity>);
+
+#[derive(Clone, Default)]
+pub struct SaveSceneFilename(pub String);
+
+#[derive(Clone, Default)]
+pub struct SaveGraphFilename(pub String);

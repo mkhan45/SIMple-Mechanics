@@ -71,6 +71,9 @@ fn main() -> ggez::GameResult {
     world.insert(joint_constraints);
     world.insert(force_gens);
 
+    world.insert(resources::SaveSceneFilename("lua/scene.lua".to_string()));
+    world.insert(resources::SaveGraphFilename("graphs.csv".to_string()));
+
     world.insert(resources::MousePos::default());
     world.insert(resources::MouseStartPos(None));
 

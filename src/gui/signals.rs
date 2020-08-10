@@ -84,10 +84,12 @@ impl<'a, 'b> MainState<'a, 'b> {
                     add_graph_variant!(RotGraph, entity);
                 }
                 UiSignal::SerializeGraphs => {
-                    self.serialize_graphs_to_csv("out.csv");
+                    use crate::resources::SaveGraphFilename;
+                    self.serialize_graphs_to_csv(self.world.fetch::<SaveGraphFilename>().0.clone());
                 }
                 UiSignal::SerializeState => {
-                    self.export_lua("lua/test.lua");
+                    use crate::resources::SaveSceneFilename;
+                    self.export_lua(self.world.fetch::<SaveSceneFilename>().0.clone());
                 }
             });
         self.imgui_wrapper.sent_signals.clear();

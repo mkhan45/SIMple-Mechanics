@@ -27,7 +27,7 @@ macro_rules! signal_button {
 
 pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mut World) {
     ui.main_menu_bar(|| {
-        ui.menu(im_str!("Create Shape"), true, || {
+        ui.menu(im_str!("Create"), true, || {
             ui.drag_float(im_str!("Mass"), &mut world.fetch_mut::<CreateMass>().0)
                 .min(0.001)
                 .max(250.0)
@@ -88,7 +88,9 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
             // );
         });
 
-        ui.menu(im_str!("Global Variables"), true, || {
+        ui.separator();
+
+        ui.menu(im_str!("Settings"), true, || {
             let mut mechanical_world = world.fetch_mut::<MechanicalWorld>();
 
             let mut timestep = mechanical_world.timestep();
@@ -114,10 +116,25 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
             }
         });
 
-        signal_button!("Clear Scene", UiSignal::DeleteAll, ui, signals);
-        signal_button!("Pause", UiSignal::TogglePause, ui, signals);
+        ui.separator();
 
-        ui.menu(im_str!("Load"), true, || {
+        ui.menu(im_str!("Save Graphs"), true, || {
+            let mut filename = ImString::new(world.fetch::<SaveGraphFilename>().0.clone());
+            ui.input_text(im_str!("Filename"), &mut filename).build();
+            world.insert(SaveGraphFilename(filename.to_string()));
+
+            signal_button!("Save Graphs", UiSignal::SerializeGraphs, ui, signals);
+        });
+        ui.separator();
+        ui.menu(im_str!("Save World"), true, || {
+            let mut filename = ImString::new(world.fetch::<SaveSceneFilename>().0.clone());
+            ui.input_text(im_str!("Filename"), &mut filename).build();
+            world.insert(SaveSceneFilename(filename.to_string()));
+
+            signal_button!("Save World", UiSignal::SerializeState, ui, signals);
+        });
+        ui.separator();
+        ui.menu(im_str!("Load World"), true, || {
             let dir = std::path::Path::new("./lua");
             match std::fs::read_dir(dir) {
                 Ok(dir_entries) => {
@@ -140,9 +157,12 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
                 Err(e) => println!("Error reading dir: {}", e),
             }
         });
+        ui.separator();
 
-        signal_button!("Serialize Graphs", UiSignal::SerializeGraphs, ui, signals);
-        signal_button!("Save Scene", UiSignal::SerializeState, ui, signals);
+        signal_button!("Clear", UiSignal::DeleteAll, ui, signals);
+        ui.separator();
+        signal_button!("Pause", UiSignal::TogglePause, ui, signals);
+        ui.separator();
     });
 }
 
