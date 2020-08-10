@@ -107,7 +107,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 self.imgui_wrapper.remove_sidemenu();
                 self.imgui_wrapper
                     .shown_menus
-                    .insert(UiChoice::SideMenu(Some(entity)));
+                    .insert(UiChoice::SideMenu(entity));
             }
         }
 
@@ -562,19 +562,39 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         _repeat: bool,
     ) {
         match (btn, keymods) {
-            (KeyCode::B, _) => {
+            (KeyCode::B, KeyMods::NONE) => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Rectangle(None))));
             }
-            (KeyCode::C, _) => {
+            (KeyCode::C, KeyMods::NONE) => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Circle(None))));
             }
-            (KeyCode::Space, _) => {
+            (KeyCode::Space, KeyMods::NONE) => {
                 self.world.fetch_mut::<Paused>().toggle();
             }
-            (KeyCode::D, KeyMods::CTRL) => {
-                self.world.delete_all();
+            (KeyCode::S, KeyMods::NONE) => {
+                self.world.fetch_mut::<CreateShapeStatic>().toggle();
+            }
+            (KeyCode::A, KeyMods::NONE) => {
+                self.world.fetch_mut::<CreateShapeCentered>().toggle();
+            }
+            (KeyCode::D, KeyMods::SHIFT) => {
+                self.delete_all();
+            }
+            (KeyCode::D, KeyMods::NONE) => {
+                let found_sidepanel_entity =
+                    self.imgui_wrapper.shown_menus.iter().find_map(|signal| {
+                        if let UiChoice::SideMenu(entity) = signal {
+                            Some(*entity)
+                        } else {
+                            None
+                        }
+                    });
+
+                if let Some(sidepanel_entity) = found_sidepanel_entity {
+                    self.delete_entity(sidepanel_entity);
+                }
             }
             _ => {}
         }
