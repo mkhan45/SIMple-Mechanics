@@ -118,12 +118,23 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
 
         ui.separator();
 
-        signal_button!("Clear", UiSignal::DeleteAll, ui, signals);
-        ui.separator();
-        signal_button!("Pause", UiSignal::TogglePause, ui, signals);
-        ui.separator();
+        ui.menu(im_str!("Save Graphs"), true, || {
+            let mut filename = ImString::new(world.fetch::<SaveGraphFilename>().0.clone());
+            ui.input_text(im_str!("Filename"), &mut filename).build();
+            world.insert(SaveGraphFilename(filename.to_string()));
 
-        ui.menu(im_str!("Load"), true, || {
+            signal_button!("Save Graphs", UiSignal::SerializeGraphs, ui, signals);
+        });
+        ui.separator();
+        ui.menu(im_str!("Save World"), true, || {
+            let mut filename = ImString::new(world.fetch::<SaveSceneFilename>().0.clone());
+            ui.input_text(im_str!("Filename"), &mut filename).build();
+            world.insert(SaveSceneFilename(filename.to_string()));
+
+            signal_button!("Save World", UiSignal::SerializeState, ui, signals);
+        });
+        ui.separator();
+        ui.menu(im_str!("Load World"), true, || {
             let dir = std::path::Path::new("./lua");
             match std::fs::read_dir(dir) {
                 Ok(dir_entries) => {
@@ -148,9 +159,10 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
         });
         ui.separator();
 
-        signal_button!("Save Graphs", UiSignal::SerializeGraphs, ui, signals);
+        signal_button!("Clear", UiSignal::DeleteAll, ui, signals);
         ui.separator();
-        signal_button!("Save Scene", UiSignal::SerializeState, ui, signals);
+        signal_button!("Pause", UiSignal::TogglePause, ui, signals);
+        ui.separator();
     });
 }
 
