@@ -104,7 +104,7 @@ impl Graph for dyn LineGraph {
 
             transformed_points
                 .iter()
-                .step_by((graph_len / 10).max(1))
+                .step_by((graph_len / 5).max(1))
                 .for_each(|point| draw_fn(builder, *point));
         }
     }
