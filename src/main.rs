@@ -47,13 +47,6 @@ fn main() -> ggez::GameResult {
         .window_setup(ggez::conf::WindowSetup::default().title("Physics"))
         .build()
         .unwrap();
-    ggez::graphics::set_mode(
-        ctx,
-        ggez::conf::WindowMode::default()
-            .maximized(true)
-            .resizable(true)
-            .fullscreen_type(ggez::conf::FullscreenType::Windowed),
-    )?;
 
     let mut world = specs::World::new();
 
@@ -97,7 +90,11 @@ fn main() -> ggez::GameResult {
     ));
 
     {
-        let dimensions = event_loop.get_primary_monitor().get_dimensions();
+        let smallest_monitor = event_loop
+            .get_available_monitors()
+            .min_by_key(|monitor| monitor.get_dimensions().width as usize)
+            .expect("error getting smallest monitor");
+        let dimensions = smallest_monitor.get_dimensions();
         world.insert(resources::Resolution(Vector::new(
             dimensions.width as f32,
             dimensions.height as f32,
@@ -177,6 +174,16 @@ fn main() -> ggez::GameResult {
         hidpi_factor,
         Vector::new(resolution.width as f32, resolution.height as f32),
     );
+
+    let dimensions = world.fetch::<resources::Resolution>().0;
+    ggez::graphics::set_mode(
+        ctx,
+        ggez::conf::WindowMode::default()
+            .resizable(true)
+            .min_dimensions(960.0, 720.0)
+            .dimensions(dimensions.x, dimensions.y)
+            .fullscreen_type(ggez::conf::FullscreenType::Windowed),
+    )?;
 
     let main_state = &mut MainState {
         world,
