@@ -15,9 +15,62 @@ use ncollide2d as nc;
 use resources::Paused;
 use specs::prelude::*;
 
+use rlua::prelude::*;
+
 pub trait LuaResExt {
     fn run_lua_code(&mut self, code: String);
     fn run_lua_file(&self, filename: impl AsRef<std::path::Path> + std::clone::Clone);
+}
+
+pub fn new_lua_res() -> LuaRes {
+    let mut lua_stdlib = rlua::StdLib::empty();
+    lua_stdlib.insert(rlua::StdLib::BASE);
+    lua_stdlib.insert(rlua::StdLib::TABLE);
+    lua_stdlib.insert(rlua::StdLib::MATH);
+    lua_stdlib.insert(rlua::StdLib::STRING);
+
+    let lua = Lua::new_with(lua_stdlib);
+    lua.set_memory_limit(Some(262_144));
+    lua.set_hook(
+        rlua::HookTriggers {
+            every_nth_instruction: Some(75_000),
+            ..Default::default()
+        },
+        |_, _| panic!("Lua script exceeded instruction limit"),
+    );
+
+    lua.context(|lua_ctx| {
+        let globals = lua_ctx.globals();
+        let shapes: Vec<rlua::Table> = Vec::new();
+        globals.set("shapes", shapes).unwrap();
+        globals.set("PAUSED", false).unwrap();
+        globals.set("GRAVITY", 9.81).unwrap();
+        globals.set("PI", std::f32::consts::PI).unwrap();
+        globals.set("SCREEN_X", crate::SCREEN_X).unwrap();
+        globals.set("SCREEN_Y", crate::SCREEN_Y).unwrap();
+
+        lua_ctx
+            .load(
+                r#"
+                    function add_shape(shape)
+                        shapes[#shapes+1] = shape
+                    end
+
+                    function add_shapes(...)
+                        for _, shape in ipairs{...} do
+                            add_shape(shape)
+                        end
+                    end
+
+                    function update()
+                    end
+                "#,
+            )
+            .exec()
+            .unwrap();
+    });
+
+    std::sync::Arc::new(std::sync::Mutex::new(lua))
 }
 
 impl LuaResExt for LuaRes {
