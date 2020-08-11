@@ -83,6 +83,15 @@ impl<'a, 'b> MainState<'a, 'b> {
             self.delete_entity(*entity);
         });
     }
+
+    pub fn reactivate_all(&mut self) {
+        let bodies = self.world.read_storage::<PhysicsBody>();
+        let mut body_set = self.world.fetch_mut::<BodySet>();
+
+        bodies.join().for_each(|body| {
+            body_set.get_mut(body.body_handle).unwrap().activate();
+        });
+    }
 }
 
 impl<'a, 'b> EventHandler for MainState<'a, 'b> {
