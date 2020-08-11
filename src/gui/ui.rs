@@ -101,9 +101,15 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
                 .build();
             mechanical_world.set_timestep(timestep);
 
+            let prev_grav = mechanical_world.gravity.y.clone();
             ui.drag_float(im_str!("Gravity"), &mut mechanical_world.gravity.y)
                 .speed(0.1)
                 .build();
+            if (prev_grav - 0.0).abs() >= 1.0e-6
+                && (prev_grav - mechanical_world.gravity.y).abs() >= 1.0e-6
+            {
+                signals.push(UiSignal::GravityChanged);
+            }
 
             {
                 std::mem::drop(mechanical_world);

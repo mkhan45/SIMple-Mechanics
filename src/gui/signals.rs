@@ -24,6 +24,7 @@ pub enum UiSignal {
     AddRotGraph(Entity),
     SerializeGraphs,
     SerializeState,
+    GravityChanged,
 }
 
 impl<'a, 'b> MainState<'a, 'b> {
@@ -90,6 +91,9 @@ impl<'a, 'b> MainState<'a, 'b> {
                 UiSignal::SerializeState => {
                     use crate::resources::SaveSceneFilename;
                     self.export_lua(self.world.fetch::<SaveSceneFilename>().0.clone());
+                }
+                UiSignal::GravityChanged => {
+                    self.reactivate_all();
                 }
             });
         self.imgui_wrapper.sent_signals.clear();
