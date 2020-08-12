@@ -49,6 +49,11 @@ pub struct MainState<'a, 'b> {
 
 impl<'a, 'b> MainState<'a, 'b> {
     pub fn delete_entity(&mut self, entity: Entity) {
+        // to delete an entity, it needs to be removed
+        // from the nphysics body and collider sets
+        // before being removed from the specs world.
+        // NEVER call world.delete_entity() to remove
+        // a physics object.
         {
             let mut body_set = self.world.fetch_mut::<BodySet>();
             let body_storage = self.world.read_storage::<PhysicsBody>();
@@ -63,7 +68,6 @@ impl<'a, 'b> MainState<'a, 'b> {
         }
 
         self.imgui_wrapper.remove_sidemenu();
-
         self.world.delete_entity(entity).unwrap();
     }
 
@@ -99,17 +103,18 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         {
             self.world.insert(resources::DT(ggez::timer::delta(ctx)));
             self.world.insert(resources::FPS(ggez::timer::fps(ctx)));
-            self.world.maintain();
-        }
 
-        {
+            self.world.maintain();
+
             self.process_gui_signals();
             self.lua_update();
+
+            self.dispatcher.dispatch(&self.world);
         }
 
-        self.dispatcher.dispatch(&self.world);
-
         {
+            // only one physics body should have the InfoDisplayed component;
+            // maybe it should be a resource: TODO
             let info_displayed = self.world.read_storage::<InfoDisplayed>();
             let entities = self.world.entities();
             if let Some((_, entity)) = (&info_displayed, &entities).join().next() {
@@ -120,13 +125,13 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             }
         }
 
-        let geometrical_world = &mut self.world.fetch_mut::<GeometricalWorld>();
-        let body_set = &mut *self.world.fetch_mut::<BodySet>();
-        let collider_set = &mut *self.world.fetch_mut::<ColliderSet>();
-        let joint_constraint_set = &mut *self.world.fetch_mut::<JointConstraintSet>();
-        let force_generator_set = &mut *self.world.fetch_mut::<ForceGeneratorSet>();
-
+        // run the physics step
         if !self.world.fetch::<Paused>().0 {
+            let geometrical_world = &mut self.world.fetch_mut::<GeometricalWorld>();
+            let body_set = &mut *self.world.fetch_mut::<BodySet>();
+            let collider_set = &mut *self.world.fetch_mut::<ColliderSet>();
+            let joint_constraint_set = &mut *self.world.fetch_mut::<JointConstraintSet>();
+            let force_generator_set = &mut *self.world.fetch_mut::<ForceGeneratorSet>();
             (0..self.world.fetch::<FrameSteps>().0).for_each(|_| {
                 self.world.fetch_mut::<MechanicalWorld>().step(
                     geometrical_world,
@@ -146,6 +151,9 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
         graphics::clear(ctx, graphics::BLACK);
 
+        // the mesh builder batches all of the objects into a single mesh,
+        // reducing draw calls.
+        // It's not used for graphs or the GUI
         let mut mesh_builder = graphics::MeshBuilder::new();
 
         {
@@ -157,12 +165,22 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
             let selected = self.world.fetch::<resources::Selected>().0;
 
+            // worth noting that only the collider is drawn, not the
+            // actual physics objects, which don't inherently have shape.
+            //
+            // Pseudocode:
+            // iterate through each collider and its associated color.
+            // in each iteration:
+            //      1. Get its position and rotation
+            //      2. Cast its generic shape to either a Ball or a Rect
+            //      3. Draw the actual shape
+            //      4. If it has the Selected component, draw a red bounding box around it
             (&colliders, &colors, &entities)
                 .join()
                 .for_each(|(collider_comp, color, e)| {
                     let collider = collider_set
                         .get(collider_comp.coll_handle)
-                        .expect("error getting body to draw");
+                        .expect("error getting collider to draw");
 
                     let (pos, rot) = {
                         let isometry = collider.position();
@@ -220,13 +238,19 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                     }
                 });
 
+            // draws the outlined circle and rect if you're creating an object
             self.draw_creation_gui(&mut mesh_builder);
             if let Ok(mesh) = mesh_builder.build(ctx) {
+                // this _will_ error if there's an empty screen, so just ignore it.
+                // Even if the error is something else it's pretty easy to tell
+                // when something goes wrong here because no shapes will be drawn
                 let _ = graphics::draw(ctx, &mesh, graphics::DrawParam::new());
             }
         }
 
         {
+            // draw the graph and labels for the midpoint, top, and bottom
+
             let (graph_text, graph_builder) = self.draw_graphs();
             if let Ok(mesh) = graph_builder.build(ctx) {
                 let graph_rect = self.world.fetch::<GraphPosData>().0;
@@ -242,7 +266,6 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 // redundant since we just iterate later
                 // but otherwise it's easy to forget the order
                 let [max_text, mid_text, min_text] = graph_text;
-
                 let y_translations = [0.25, 5.0, 9.25];
 
                 [max_text, mid_text, min_text]
@@ -275,6 +298,9 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     }
 
     fn resize_event(&mut self, ctx: &mut ggez::Context, width: f32, height: f32) {
+        // making width increase with respect to the height reveals more things
+        // making the height increase with respect to the width scales everything down
+
         let aspect_ratio = height / width;
         let initial_ratio = 1.0;
 

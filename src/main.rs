@@ -42,27 +42,39 @@ const SCREEN_X: f32 = 20.0;
 const SCREEN_Y: f32 = 20.0;
 
 fn main() -> ggez::GameResult {
-    // create a mutable reference to a `Context` and `EventsLoop`
+    // create a mutable reference to a ggez `Context` and `EventsLoop`
     let (ctx, event_loop) = &mut ggez::ContextBuilder::new("Physics", "Mikail Khan")
         .window_setup(ggez::conf::WindowSetup::default().title("Physics"))
         .build()
         .unwrap();
 
+    // the specs world that almost all data goes in
     let mut world = specs::World::new();
 
+    // the nphysics mechanical world stores actual physics stuff
     let mechanical_world = MechanicalWorld::new(Vector::new(0.0, 9.81));
+
+    // the geometrical world from ncollide deals with collisions
     let geometrical_world: GeometricalWorld = GeometricalWorld::new();
+
+    // the body set and collider set contain the rigid body data for the actual sim
     let bodies: BodySet = BodySet::new();
     let colliders: ColliderSet = ColliderSet::new();
+
+    // right now the sim doesn't use any constraints or force generators
+    // so these are just left as is
     let joint_constraints = JointConstraintSet::new();
     let force_gens = ForceGeneratorSet::new();
 
+    // insert all the physics stuff into the specs world for use later
     world.insert(mechanical_world);
     world.insert(geometrical_world);
     world.insert(bodies);
     world.insert(colliders);
     world.insert(joint_constraints);
     world.insert(force_gens);
+
+    // setting up defaults
 
     world.insert(resources::SaveSceneFilename("lua/scene.lua".to_string()));
     world.insert(resources::SaveGraphFilename("graphs.csv".to_string()));
@@ -90,6 +102,11 @@ fn main() -> ggez::GameResult {
     ));
 
     {
+        // init screen size to be the size of the smallest available monitor
+        // Ideally this should be the monitor that it actually starts on
+        // but probably 90% of users only have one monitor and it's easier
+        // to drag a small window to big screen than a big window to small
+        // screen
         let smallest_monitor = event_loop
             .get_available_monitors()
             .min_by_key(|monitor| monitor.get_dimensions().width as usize)
@@ -101,11 +118,16 @@ fn main() -> ggez::GameResult {
         )));
     }
 
+    // new_lua_res() does a lot of stuff behind the scenes to
+    // set up the Lua context
     world.insert(lua::new_lua_res());
+
     world.insert(resources::FPS(60.0));
     world.insert(resources::DT(std::time::Duration::from_millis(16)));
     world.insert(resources::Selected(None));
 
+    // many components aren't used in proper specs systems, so just
+    // register them all manually.
     world.register::<PhysicsBody>();
     world.register::<Collider>();
     world.register::<InfoDisplayed>();
@@ -119,6 +141,12 @@ fn main() -> ggez::GameResult {
     world.register::<YPosGraph>();
     world.register::<RotGraph>();
 
+    // The specs dispatcher takes a bunch of systems and tries to
+    // run them in parallel. dispatcher.dispatch() is run every frame
+    //
+    // none of the systems really depend on each other
+    // but still can't really be properly multithreaded because
+    // they all use the nphysics stuff
     let mut dispatcher = DispatcherBuilder::new()
         .with(SelectedMoveSys, "selected_move_sys", &[])
         .with(SpeedGraphSys::default(), "speed_graph_sys", &[])
@@ -128,16 +156,17 @@ fn main() -> ggez::GameResult {
         .with(XVelGraphSys::default(), "x_vel_graph_sys", &[])
         .with(YVelGraphSys::default(), "y_vel_graph_sys", &[])
         .with(RotGraphSys::default(), "rot_graph_sys", &[])
-        .with(MinMaxGraphSys, "graph_minmax_sys", &["speed_graph_sys"])
+        .with(MinMaxGraphSys, "graph_minmax_sys", &[])
         .with(GraphTransformSys, "graph_transform_sys", &[])
         .build();
 
     dispatcher.setup(&mut world);
 
-    // Make a mutable reference to `MainState`
+    // More defaults relating to ggez and imgui
     let hidpi_factor = event_loop.get_primary_monitor().get_hidpi_factor() as f32;
     let resolution = event_loop.get_primary_monitor().get_dimensions();
     world.insert(HiDPIFactor(hidpi_factor));
+
     let imgui_wrapper = ImGuiWrapper::new(
         ctx,
         hidpi_factor,
@@ -154,6 +183,7 @@ fn main() -> ggez::GameResult {
             .fullscreen_type(ggez::conf::FullscreenType::Windowed),
     )?;
 
+    // the MainState runs the main loop and input handling
     let main_state = &mut MainState {
         world,
         dispatcher,
@@ -163,6 +193,5 @@ fn main() -> ggez::GameResult {
     main_state.add_shapes_from_lua_file("lua/init.lua");
     main_state.lua_update();
 
-    // Start the game
     ggez::event::run(ctx, event_loop, main_state)
 }
