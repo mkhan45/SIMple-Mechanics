@@ -2,7 +2,6 @@ use ggez::event::EventHandler;
 use ggez::{
     graphics,
     input::{
-        self,
         keyboard::{KeyCode, KeyMods},
         mouse::MouseButton,
     },
@@ -23,10 +22,7 @@ use crate::resources::{
     Paused, ShapeInfo,
 };
 
-use crate::{
-    gui::imgui_wrapper::{ImGuiWrapper, UiChoice},
-    Point,
-};
+use crate::gui::imgui_wrapper::{ImGuiWrapper, UiChoice};
 
 use ncollide2d as nc;
 use nphysics2d as np;
@@ -325,6 +321,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     }
 
     fn mouse_motion_event(&mut self, ctx: &mut ggez::Context, x: f32, y: f32, _dx: f32, _dy: f32) {
+        // input mouse position data to specs world and imgui
         self.imgui_wrapper.update_mouse_pos(x, y);
 
         let screen_size = graphics::drawable_size(ctx);
@@ -336,17 +333,18 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
         self.world.insert(resources::MousePos(mouse_point));
 
-        {
-            let mut create_shape_data = self.world.fetch_mut::<CreationData>();
-            if input::mouse::button_pressed(ctx, MouseButton::Left)
-                && ggez::timer::ticks(ctx) % 10 == 0
-            {
-                if let Some(ShapeInfo::Polyline(Some(points))) = create_shape_data.0.as_mut() {
-                    let mouse_pos = self.world.fetch::<resources::MousePos>().0;
-                    points.push(Point::new(mouse_pos.x, mouse_pos.y));
-                }
-            }
-        }
+        // unfinished Polyline stuff
+        // {
+        //     let mut create_shape_data = self.world.fetch_mut::<CreationData>();
+        //     if input::mouse::button_pressed(ctx, MouseButton::Left)
+        //         && ggez::timer::ticks(ctx) % 10 == 0
+        //     {
+        //         if let Some(ShapeInfo::Polyline(Some(points))) = create_shape_data.0.as_mut() {
+        //             let mouse_pos = self.world.fetch::<resources::MousePos>().0;
+        //             points.push(Point::new(mouse_pos.x, mouse_pos.y));
+        //         }
+        //     }
+        // }
     }
 
     fn mouse_button_down_event(
@@ -356,6 +354,10 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         x: f32,
         y: f32,
     ) {
+        // 1. update imgui mouse data
+        // 2. Add mouse click pos as MouseStartPos to specs world (it's removed in
+        //    mouse_button_up_event)
+
         self.imgui_wrapper.update_mouse_down((
             btn == MouseButton::Left,
             btn == MouseButton::Right,
@@ -374,6 +376,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         match btn {
             MouseButton::Left => {
                 {
+                    // If a left click overlaps the grab point of the graph, set MovingGraph to true.
+                    // MovingGraph is used in GraphTransformSys
                     let mouse_rect = graphics::Rect::new(mouse_point.x, mouse_point.y, 0.1, 0.1);
                     let graph_grab_rect = self.graph_grab_rect();
 
@@ -383,19 +387,23 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                     }
                 }
 
+                // if left click overlaps a shape, set the entity to be Selected
                 if let Some(entity) = get_hovered_shape(&self.world) {
                     self.world.insert(resources::Selected(Some(entity)));
                 }
 
                 {
-                    let mut create_shape_data = self.world.fetch_mut::<CreationData>();
-                    if let Some(ShapeInfo::Polygon(Some(points))) = create_shape_data.0.as_mut() {
-                        points.push(mouse_point.into());
-                    }
+                    // unfinished polyline creation stuff
+                    // let mut create_shape_data = self.world.fetch_mut::<CreationData>();
+                    // if let Some(ShapeInfo::Polygon(Some(points))) = create_shape_data.0.as_mut() {
+                    //     points.push(mouse_point.into());
+                    // }
                 }
             }
             MouseButton::Right => {
                 {
+                    // if a right click overlaps the graph grab point, set ScalingGraph to true
+                    // this is used by GraphTransformSys
                     let mouse_rect = graphics::Rect::new(mouse_point.x, mouse_point.y, 0.1, 0.1);
                     let graph_grab_rect = self.graph_grab_rect();
 
@@ -406,6 +414,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 }
 
                 {
+                    // If a sidepanel'd object is right clicked, remove sidepanel
+                    // if a non sidepanel'd object is right clicked, add sidepanel
                     let mut info_displayed = self.world.write_storage::<InfoDisplayed>();
                     match get_hovered_shape(&self.world) {
                         Some(entity) => {
@@ -429,24 +439,25 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                     }
                 }
 
-                {
-                    let create_shape_data = self.world.fetch::<CreationData>();
-                    if let Some(ShapeInfo::Polygon(Some(_points))) = &create_shape_data.0.clone() {
-                        let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
-                        BodyBuilder {
-                            translation: start_pos,
-                            rotation: 0.0,
-                            restitution: self.world.fetch::<CreateElasticity>().0,
-                            friction: self.world.fetch::<CreateFriction>().0,
-                            ..BodyBuilder::from_world(
-                                &self.world,
-                                create_shape_data.0.as_ref().unwrap().clone(),
-                                self.world.fetch::<CreateMass>().0,
-                            )
-                        }
-                        .create();
-                    }
-                }
+                // nonworking polygon stuff
+                // {
+                //     let create_shape_data = self.world.fetch::<CreationData>();
+                //     if let Some(ShapeInfo::Polygon(Some(_points))) = &create_shape_data.0.clone() {
+                //         let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
+                //         BodyBuilder {
+                //             translation: start_pos,
+                //             rotation: 0.0,
+                //             restitution: self.world.fetch::<CreateElasticity>().0,
+                //             friction: self.world.fetch::<CreateFriction>().0,
+                //             ..BodyBuilder::from_world(
+                //                 &self.world,
+                //                 create_shape_data.0.as_ref().unwrap().clone(),
+                //                 self.world.fetch::<CreateMass>().0,
+                //             )
+                //         }
+                //         .create();
+                //     }
+                // }
             }
             _ => {}
         }
@@ -462,6 +473,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         self.imgui_wrapper.update_mouse_down((false, false, false));
         match btn {
             MouseButton::Left => {
+                // unselect object and graph
+                // finish creation of object
                 self.world.insert(resources::Selected(None));
 
                 self.world.insert(MovingGraph(false));
@@ -596,6 +609,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         keymods: KeyMods,
         _repeat: bool,
     ) {
+        // hotkeys
         match (btn, keymods) {
             (KeyCode::B, KeyMods::NONE) => {
                 self.world
