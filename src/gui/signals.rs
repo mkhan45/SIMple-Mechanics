@@ -59,7 +59,7 @@ impl<'a, 'b> MainState<'a, 'b> {
                 UiSignal::LoadLua(filename) => {
                     self.delete_all();
                     self.add_shapes_from_lua_file(format!("lua/{}", filename));
-                    self.lua_update();
+                    // self.lua_update();
                 }
                 //TODO: Figure out how to make macro work in top level of match, e.g.
                 // add_graph_variant!(SpeedGraph) generates the whole match arm

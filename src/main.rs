@@ -191,7 +191,7 @@ fn main() -> ggez::GameResult {
     };
 
     main_state.add_shapes_from_lua_file("lua/init.lua");
-    main_state.lua_update();
+    // main_state.lua_update();
 
     ggez::event::run(ctx, event_loop, main_state)
 }

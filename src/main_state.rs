@@ -103,7 +103,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             self.world.maintain();
 
             self.process_gui_signals();
-            self.lua_update();
+            // self.lua_update();
 
             self.dispatcher.dispatch(&self.world);
         }
