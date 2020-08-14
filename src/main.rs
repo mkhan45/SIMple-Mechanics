@@ -81,6 +81,7 @@ fn main() -> ggez::GameResult {
 
     world.insert(resources::MousePos::default());
     world.insert(resources::MouseStartPos(None));
+    world.insert(resources::ScaleFac::default());
 
     world.insert(resources::CreationData(None));
     world.insert(resources::CreateMass(5.0));
@@ -191,7 +192,7 @@ fn main() -> ggez::GameResult {
     };
 
     main_state.add_shapes_from_lua_file("lua/init.lua");
-    // main_state.lua_update();
+    main_state.lua_update();
 
     ggez::event::run(ctx, event_loop, main_state)
 }

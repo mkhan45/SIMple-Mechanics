@@ -103,7 +103,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             self.world.maintain();
 
             self.process_gui_signals();
-            // self.lua_update();
+            self.lua_update();
 
             self.dispatcher.dispatch(&self.world);
         }
@@ -318,6 +318,12 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
         self.world
             .insert(resources::Resolution(Vector::new(width, height)));
+
+        let screen_coords = graphics::screen_coordinates(ctx);
+        self.world.insert(resources::ScaleFac(Vector::new(
+            screen_coords.w / SCREEN_X,
+            screen_coords.h / SCREEN_Y,
+        )));
     }
 
     fn mouse_motion_event(&mut self, ctx: &mut ggez::Context, x: f32, y: f32, _dx: f32, _dy: f32) {

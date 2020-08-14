@@ -1,8 +1,8 @@
 use crate::main_state::{body_builder::BodyBuilder, MainState};
 use crate::resources::LuaRes;
 
-use crate::components::{Collider, Color, PhysicsBody};
-use crate::resources::ShapeInfo;
+use crate::components::{Collider, Color, Name, PhysicsBody};
+use crate::resources::{self, Paused, ShapeInfo};
 
 use crate::{BodySet, ColliderSet, MechanicalWorld, RigidBody, Vector};
 use np::material::BasicMaterial;
@@ -268,57 +268,70 @@ impl<'a, 'b> MainState<'a, 'b> {
         std::fs::write(filename, lua_string).unwrap();
     }
 
-    // doesn't work right now because it hits the instruction limit eventually
-    // targeted for a later release
-    // pub fn lua_update(&mut self) {
-    //     let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
-    //     lua.lock().unwrap().context(|lua_ctx| {
-    //         lua_ctx.load("update()").exec().unwrap();
-    //         let globals = lua_ctx.globals();
-    //         if let Ok(true) = globals.get("ADD_SHAPES") {
-    //             self.process_lua_shapes(globals.get::<_, Vec<rlua::Table>>("shapes").unwrap());
-    //         }
+    pub fn lua_update(&mut self) {
+        let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
+        lua.lock().unwrap().context(|lua_ctx| {
+            // doesn't work right now because it hits the instruction limit eventually
+            // targeted for a later release
+            // lua_ctx.load("update()").exec().unwrap();
 
-    //         if let Ok(paused) = globals.get::<_, bool>("PAUSED") {
-    //             self.world.insert::<Paused>(Paused(paused));
-    //         }
-    //         if let Ok(gravity) = globals.get::<_, f32>("GRAVITY") {
-    //             self.world.fetch_mut::<MechanicalWorld>().gravity.y = gravity;
-    //         }
+            let globals = lua_ctx.globals();
+            if let Ok(true) = globals.get("ADD_SHAPES") {
+                self.process_lua_shapes(globals.get::<_, Vec<rlua::Table>>("shapes").unwrap());
+            }
 
-    //         globals.set("ADD_SHAPES", false).unwrap();
-    //         globals
-    //             .set("FPS", self.world.fetch::<resources::FPS>().0)
-    //             .unwrap();
-    //         globals
-    //             .set("DT", self.world.fetch::<resources::DT>().0.as_millis())
-    //             .unwrap();
+            if let Ok(paused) = globals.get::<_, bool>("PAUSED") {
+                self.world.insert::<Paused>(Paused(paused));
+            }
+            if let Ok(gravity) = globals.get::<_, f32>("GRAVITY") {
+                self.world.fetch_mut::<MechanicalWorld>().gravity.y = gravity;
+            }
 
-    //         {
-    //             pub struct LuaEntity(pub Entity);
-    //             impl rlua::UserData for LuaEntity {
-    //                 fn add_methods<'lua, M: rlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
-    //                     methods.add_method("id", |_, this, _: ()| Ok(this.0.id()));
-    //                 }
-    //             }
+            globals.set("ADD_SHAPES", false).unwrap();
+            globals
+                .set("FPS", self.world.fetch::<resources::FPS>().0)
+                .unwrap();
+            globals
+                .set("DT", self.world.fetch::<resources::DT>().0.as_millis())
+                .unwrap();
 
-    //             let entities = self.world.entities();
-    //             let names = self.world.read_storage::<Name>();
-    //             let lua_objects = lua_ctx.create_table().unwrap();
-    //             (&entities, &names).join().for_each(|(entity, name)| {
-    //                 lua_objects.set(name.0.as_str(), LuaEntity(entity)).unwrap();
-    //             });
-    //             globals.set("OBJECTS", lua_objects).unwrap();
-    //         }
+            {
+                let scale_fac = self.world.fetch::<resources::ScaleFac>().0;
+                dbg!(scale_fac);
 
-    //         {
-    //             let mouse_pos = self.world.fetch::<resources::MousePos>().0;
-    //             globals.set("MOUSE_X", mouse_pos.x).unwrap();
-    //             globals.set("MOUSE_Y", mouse_pos.y).unwrap();
-    //         }
+                globals
+                    .set("SCREEN_X", crate::SCREEN_X * scale_fac.x)
+                    .unwrap();
+                globals
+                    .set("SCREEN_Y", crate::SCREEN_Y * scale_fac.y)
+                    .unwrap();
+            }
 
-    //         let shapes: Vec<rlua::Table> = Vec::new();
-    //         globals.set("shapes", shapes).unwrap();
-    //     });
-    // }
+            {
+                pub struct LuaEntity(pub Entity);
+                impl rlua::UserData for LuaEntity {
+                    fn add_methods<'lua, M: rlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
+                        methods.add_method("id", |_, this, _: ()| Ok(this.0.id()));
+                    }
+                }
+
+                let entities = self.world.entities();
+                let names = self.world.read_storage::<Name>();
+                let lua_objects = lua_ctx.create_table().unwrap();
+                (&entities, &names).join().for_each(|(entity, name)| {
+                    lua_objects.set(name.0.as_str(), LuaEntity(entity)).unwrap();
+                });
+                globals.set("OBJECTS", lua_objects).unwrap();
+            }
+
+            {
+                let mouse_pos = self.world.fetch::<resources::MousePos>().0;
+                globals.set("MOUSE_X", mouse_pos.x).unwrap();
+                globals.set("MOUSE_Y", mouse_pos.y).unwrap();
+            }
+
+            let shapes: Vec<rlua::Table> = Vec::new();
+            globals.set("shapes", shapes).unwrap();
+        });
+    }
 }

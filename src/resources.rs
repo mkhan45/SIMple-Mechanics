@@ -103,3 +103,11 @@ pub struct SaveSceneFilename(pub String);
 
 #[derive(Clone, Default)]
 pub struct SaveGraphFilename(pub String);
+
+#[derive(Copy, Clone)]
+pub struct ScaleFac(pub Vector);
+impl Default for ScaleFac {
+    fn default() -> Self {
+        ScaleFac(Vector::new(1.0, 1.0))
+    }
+}
