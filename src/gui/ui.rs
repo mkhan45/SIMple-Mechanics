@@ -93,13 +93,11 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
         ui.menu(im_str!("Settings"), true, || {
             let mut mechanical_world = world.fetch_mut::<MechanicalWorld>();
 
-            let mut timestep = mechanical_world.timestep();
-            ui.drag_float(im_str!("Timestep"), &mut timestep)
+            ui.drag_float(im_str!("Timestep"), &mut world.fetch_mut::<Timestep>().0)
                 .min(1e-10)
                 .max(2.0)
                 .speed(0.01)
                 .build();
-            mechanical_world.set_timestep(timestep);
 
             let prev_grav = mechanical_world.gravity.y.clone();
             ui.drag_float(im_str!("Gravity"), &mut mechanical_world.gravity.y)

@@ -297,7 +297,6 @@ impl<'a, 'b> MainState<'a, 'b> {
 
             {
                 let scale_fac = self.world.fetch::<resources::ScaleFac>().0;
-                dbg!(scale_fac);
 
                 globals
                     .set("SCREEN_X", crate::SCREEN_X * scale_fac.x)

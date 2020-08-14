@@ -22,7 +22,17 @@ impl Default for Resolution {
 }
 
 #[derive(Copy, Clone, Default)]
+// frame time
 pub struct DT(pub std::time::Duration);
+
+#[derive(Copy, Clone)]
+// physics step in seconds
+pub struct Timestep(pub f32);
+impl Default for Timestep {
+    fn default() -> Self {
+        Timestep(0.016)
+    }
+}
 
 #[derive(Clone, PartialEq, Debug)]
 #[allow(dead_code)]

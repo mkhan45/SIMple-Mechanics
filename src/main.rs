@@ -125,6 +125,7 @@ fn main() -> ggez::GameResult {
 
     world.insert(resources::FPS(60.0));
     world.insert(resources::DT(std::time::Duration::from_millis(16)));
+    world.insert(resources::Timestep(0.016));
     world.insert(resources::Selected(None));
 
     // many components aren't used in proper specs systems, so just

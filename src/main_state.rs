@@ -122,22 +122,30 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         }
 
         // run the physics step
-        if !self.world.fetch::<Paused>().0 {
-            let geometrical_world = &mut self.world.fetch_mut::<GeometricalWorld>();
-            let body_set = &mut *self.world.fetch_mut::<BodySet>();
-            let collider_set = &mut *self.world.fetch_mut::<ColliderSet>();
-            let joint_constraint_set = &mut *self.world.fetch_mut::<JointConstraintSet>();
-            let force_generator_set = &mut *self.world.fetch_mut::<ForceGeneratorSet>();
-            (0..self.world.fetch::<FrameSteps>().0).for_each(|_| {
-                self.world.fetch_mut::<MechanicalWorld>().step(
-                    geometrical_world,
-                    body_set,
-                    collider_set,
-                    joint_constraint_set,
-                    force_generator_set,
-                );
-            });
+        let geometrical_world = &mut self.world.fetch_mut::<GeometricalWorld>();
+        let body_set = &mut *self.world.fetch_mut::<BodySet>();
+        let collider_set = &mut *self.world.fetch_mut::<ColliderSet>();
+        let joint_constraint_set = &mut *self.world.fetch_mut::<JointConstraintSet>();
+        let force_generator_set = &mut *self.world.fetch_mut::<ForceGeneratorSet>();
+        let mut mechanical_world = self.world.fetch_mut::<MechanicalWorld>();
+
+        // not running the physics step at all when paused causes some weird behavior,
+        // so just run it with a timestep of 0
+        if self.world.fetch::<Paused>().0 {
+            mechanical_world.set_timestep(0.0);
+        } else {
+            mechanical_world.set_timestep(self.world.fetch::<resources::Timestep>().0);
         }
+
+        (0..self.world.fetch::<FrameSteps>().0).for_each(|_| {
+            mechanical_world.step(
+                geometrical_world,
+                body_set,
+                collider_set,
+                joint_constraint_set,
+                force_generator_set,
+            );
+        });
 
         Ok(())
     }
