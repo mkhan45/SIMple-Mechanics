@@ -1,7 +1,7 @@
 use crate::main_state::{body_builder::BodyBuilder, MainState};
 use crate::resources::LuaRes;
 
-use crate::components::{Collider, PhysicsBody};
+use crate::components::{Collider, Color, PhysicsBody};
 use crate::resources::ShapeInfo;
 
 use crate::{BodySet, ColliderSet, MechanicalWorld, RigidBody, Vector};
@@ -191,9 +191,11 @@ impl<'a, 'b> MainState<'a, 'b> {
         let colliders = self.world.read_storage::<Collider>();
         let collider_set = self.world.fetch::<ColliderSet>();
 
+        let colors = self.world.read_storage::<Color>();
+
         let mut first = true;
 
-        (&physics_bodies, &colliders).join().for_each(|(physics_body_handle, collider_handle)|{
+        (&physics_bodies, &colliders, &colors).join().for_each(|(physics_body_handle, collider_handle, color)|{
             if !first {
                 body_string.push_str(",\n\t");
             } else {
@@ -232,7 +234,7 @@ impl<'a, 'b> MainState<'a, 'b> {
 
             body_string.push_str(
                 format!(
-                    "{{shape = \"{shape_str}\", x = {x:.prec$}, y = {y:.prec$}, rotation = {rotation:.prec$}, x_vel = {x_vel:.prec$}, y_vel = {y_vel:.prec$}, rotvel = {rotvel:.prec$}, {shape_info_str}, mass = {mass:.prec$}, friction = {friction:.prec$}, elasticity = {elasticity:.prec$}, status = \"{status}\"}}",
+                    "{{shape = \"{shape_str}\", x = {x:.prec$}, y = {y:.prec$}, rotation = {rotation:.prec$}, x_vel = {x_vel:.prec$}, y_vel = {y_vel:.prec$}, rotvel = {rotvel:.prec$}, {shape_info_str}, mass = {mass:.prec$}, friction = {friction:.prec$}, elasticity = {elasticity:.prec$}, color = {{r = {red}, g = {green}, b = {blue}}}, status = \"{status}\"}}",
                     shape_str = shape_str,
                     x = position.translation.x,
                     y = position.translation.y,
@@ -245,6 +247,9 @@ impl<'a, 'b> MainState<'a, 'b> {
                     friction = material.friction,
                     elasticity = material.restitution,
                     status = status_str,
+                    red = (color.0.r * 255.0).round() as usize,
+                    green = (color.0.g * 255.0).round() as usize,
+                    blue = (color.0.b * 255.0).round() as usize,
                     prec = 3,
                 ).as_str())
         });
