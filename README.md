@@ -3,6 +3,8 @@
 
 Educational physics sim that uses graphs, FBDs, and other helpful stuff to teach physics. Also see my [gravity sim](https://github.com/mkhan45/gravity-sim-v2)
 
+Find out more at the website: [https://mkhan45.github.io/SIMple-Physics/](https://mkhan45.github.io/SIMple-Physics/)
+
 ## Features
 
 - [X] Basic physics simulation using [nphysics](nphysics.org)
