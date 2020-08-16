@@ -94,6 +94,7 @@ impl<'a, 'b> MainState<'a, 'b> {
                     self.export_lua(self.world.fetch::<SaveSceneFilename>().0.clone());
                 }
                 UiSignal::GravityChanged => {
+                    dbg!();
                     self.reactivate_all();
                 }
             });
