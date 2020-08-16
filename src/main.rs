@@ -185,6 +185,12 @@ fn main() -> ggez::GameResult {
             .fullscreen_type(ggez::conf::FullscreenType::Windowed),
     )?;
 
+    let screen_coords = ggez::graphics::screen_coordinates(ctx);
+    world.insert(resources::ScaleFac(Vector::new(
+        screen_coords.w / SCREEN_X,
+        screen_coords.h / SCREEN_Y,
+    )));
+
     // the MainState runs the main loop and input handling
     let main_state = &mut MainState {
         world,
