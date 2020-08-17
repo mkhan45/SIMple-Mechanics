@@ -1,9 +1,11 @@
-# physics-v2
+# SIMple Mechanics
 [![](https://gitlab.com/mkhan45/physics-v2/badges/master/pipeline.svg?key_text=build&style=flat-square)](https://gitlab.com/mkhan45/physics-v2/-/pipelines)
 
 Educational physics sim that uses graphs, FBDs, and other helpful stuff to teach physics. Also see my [gravity sim](https://github.com/mkhan45/gravity-sim-v2)
 
-Find out more at the website: [https://mkhan45.github.io/SIMple-Physics/](https://mkhan45.github.io/SIMple-Physics/)
+Find more info at the website: [https://mkhan45.github.io/SIMple-Physics/](https://mkhan45.github.io/SIMple-Physics/)
+
+You can also find sample labs and tutorials at [https://mkhan45.github.io/SIMple-Physics/tags/mechanics/](https://mkhan45.github.io/SIMple-Physics/tags/mechanics/)
 
 ## Features
 
