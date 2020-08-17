@@ -8,3 +8,5 @@ add_shapes(
     {shape = "circle", x = SCREEN_X / 2, y = SCREEN_Y / 3, r = 1.5, mass = 1, elasticity = 0.7, color = c2},
     {shape = "circle", x = SCREEN_X * 5/6, y = SCREEN_Y / 3, r = 1.5, mass = 1, elasticity = 0.9, color = c3}
 )
+
+GRAVITY = 9.81

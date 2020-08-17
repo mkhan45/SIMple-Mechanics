@@ -23,3 +23,5 @@ for col = 2,(cols-1) do
 
     add_shape({shape = "circle", x = x, y = y, r = 1, mass = 1, elasticity = 1, y_vel = y_vel, color = color})
 end
+
+GRAVITY = 9.81
