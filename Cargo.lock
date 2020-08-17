@@ -1673,7 +1673,7 @@ dependencies = [
 
 [[package]]
 name = "physics-engine-v2"
-version = "0.1.0"
+version = "1.0.1"
 dependencies = [
  "csv",
  "gfx_core",

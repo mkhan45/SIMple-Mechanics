@@ -55,6 +55,7 @@ impl<'a, 'b> MainState<'a, 'b> {
                 }
                 UiSignal::TogglePause => {
                     self.world.fetch_mut::<Paused>().toggle();
+                    self.reactivate_all();
                 }
                 UiSignal::LoadLua(filename) => {
                     self.delete_all();
@@ -94,7 +95,6 @@ impl<'a, 'b> MainState<'a, 'b> {
                     self.export_lua(self.world.fetch::<SaveSceneFilename>().0.clone());
                 }
                 UiSignal::GravityChanged => {
-                    dbg!();
                     self.reactivate_all();
                 }
             });

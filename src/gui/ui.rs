@@ -165,7 +165,14 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
 
         signal_button!("Clear", UiSignal::DeleteAll, ui, signals);
         ui.separator();
-        signal_button!("Pause", UiSignal::TogglePause, ui, signals);
+        let pause_button_str = if world.fetch::<Paused>().0 {
+            im_str!("Unpause")
+        } else {
+            im_str!("Pause")
+        };
+        if ui.small_button(pause_button_str) {
+            signals.push(UiSignal::TogglePause);
+        }
         ui.separator();
     });
 }
