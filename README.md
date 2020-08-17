@@ -1,7 +1,9 @@
 # SIMple Mechanics
 [![](https://gitlab.com/mkhan45/physics-v2/badges/master/pipeline.svg?key_text=build&style=flat-square)](https://gitlab.com/mkhan45/physics-v2/-/pipelines)
 
-Educational physics sim that uses graphs, FBDs, and other helpful stuff to teach physics. SIMple Mechanics is part of my SIMple Physics project. Find more info at the website: [https://mkhan45.github.io/SIMple-Physics/tabs/about](https://mkhan45.github.io/SIMple-Physics/tabs/about/)
+Educational physics sim that uses graphs, FBDs, and other helpful stuff to teach physics. 
+
+SIMple Mechanics is part of my SIMple Physics project. Find more info at the website: [https://mkhan45.github.io/SIMple-Physics/tabs/about](https://mkhan45.github.io/SIMple-Physics/tabs/about/)
 
 You can also find sample labs and tutorials at [https://mkhan45.github.io/SIMple-Physics/tags/mechanics/](https://mkhan45.github.io/SIMple-Physics/tags/mechanics/)
 
