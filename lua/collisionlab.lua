@@ -25,3 +25,4 @@ make_row({elA = 0, elB = 0, mA = 1, mB = 1, vA = 5, vB = 0, y_pos = (rad * 2 + 1
 make_row({elA = 0, elB = 0, mA = 1, mB = 5, vA = 5, vB = 0, y_pos = (rad * 2 + 1) * 4})
 
 PAUSED = true
+GRAVITY = 0

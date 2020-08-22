@@ -1,5 +1,5 @@
 [package]
-name = "physics-engine-v2"
+name = "simple_mechanics"
 version = "1.0.1"
 authors = ["Mikail Khan <mikail.khan45@gmail.com>"]
 edition = "2018"

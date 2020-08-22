@@ -1672,24 +1672,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "physics-engine-v2"
-version = "1.0.1"
-dependencies = [
- "csv",
- "gfx_core",
- "gfx_device_gl",
- "ggez",
- "imgui",
- "imgui-gfx-renderer",
- "nalgebra 0.21.0",
- "ncollide2d",
- "nphysics2d",
- "rlua",
- "smallvec 1.4.0",
- "specs",
-]
-
-[[package]]
 name = "pkg-config"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2259,6 +2241,24 @@ dependencies = [
  "num-complex",
  "num-traits 0.2.11",
  "paste",
+]
+
+[[package]]
+name = "simple_mechanics"
+version = "1.0.1"
+dependencies = [
+ "csv",
+ "gfx_core",
+ "gfx_device_gl",
+ "ggez",
+ "imgui",
+ "imgui-gfx-renderer",
+ "nalgebra 0.21.0",
+ "ncollide2d",
+ "nphysics2d",
+ "rlua",
+ "smallvec 1.4.0",
+ "specs",
 ]
 
 [[package]]
