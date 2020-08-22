@@ -92,11 +92,23 @@ impl Graph for dyn LineGraph {
                 }),
             };
 
-            let transformed_points = s0
+            let x_offset = {
+                let self_len = {
+                    let points = self.points();
+                    points.0.len() + points.1.len()
+                };
+                let frac_completed = self_len as f32 / self.max_len() as f32;
+
+                (1.0 - frac_completed) * 10.0
+            };
+
+            let mut transformed_points = s0
                 .iter()
                 .chain(s1.iter())
-                .map(|[x, v]| [*x, 5.5 - (v - midpoint) * scale_fac])
+                .map(|[x, v]| [x_offset + dbg!(*x), 5.5 - (v - midpoint) * scale_fac])
                 .collect::<Vec<[f32; 2]>>();
+
+            transformed_points.pop();
 
             builder
                 .line(transformed_points.as_slice(), 0.1, color)
@@ -137,7 +149,7 @@ macro_rules! create_linegraph {
 
             fn add_val(&mut self, val: f32) {
                 let num_vals = self.data.len() + 1;
-                let step_incr = 10.0 / num_vals as f32;
+                let step_incr = 10.0 / self.max_len() as f32;
 
                 self.data.iter_mut().enumerate().for_each(|(i, [x, _])| {
                     *x = step_incr * i as f32;
