@@ -128,6 +128,8 @@ fn main() -> ggez::GameResult {
     world.insert(resources::Timestep(0.016));
     world.insert(resources::Selected(None));
 
+    world.insert(resources::Camera::default());
+
     // many components aren't used in proper specs systems, so just
     // register them all manually.
     world.register::<PhysicsBody>();

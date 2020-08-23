@@ -27,8 +27,8 @@ use crate::gui::imgui_wrapper::{ImGuiWrapper, UiChoice};
 use ncollide2d as nc;
 use nphysics2d as np;
 use resources::{
-    CreateShapeCentered, CreationData, GraphPosData, HiDPIFactor, MouseStartPos, MovingGraph,
-    ScalingGraph,
+    Camera, CreateShapeCentered, CreationData, GraphPosData, HiDPIFactor, MouseStartPos,
+    MovingGraph, ScalingGraph,
 };
 
 pub mod body_builder;
@@ -106,6 +106,27 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             self.lua_update();
 
             self.dispatcher.dispatch(&self.world);
+        }
+
+        {
+            // camera keyboard movement
+            use ggez::input::keyboard;
+
+            let mut camera = self.world.fetch_mut::<Camera>();
+            const SPEED: f32 = 0.5;
+
+            if keyboard::is_key_pressed(ctx, KeyCode::Up) {
+                camera.translate(Vector::new(0.0, -SPEED));
+            }
+            if keyboard::is_key_pressed(ctx, KeyCode::Down) {
+                camera.translate(Vector::new(0.0, SPEED));
+            }
+            if keyboard::is_key_pressed(ctx, KeyCode::Left) {
+                camera.translate(Vector::new(-SPEED, 0.0));
+            }
+            if keyboard::is_key_pressed(ctx, KeyCode::Right) {
+                camera.translate(Vector::new(SPEED, 0.0));
+            }
         }
 
         {
@@ -248,7 +269,10 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 // this _will_ error if there's an empty screen, so just ignore it.
                 // Even if the error is something else it's pretty easy to tell
                 // when something goes wrong here because no shapes will be drawn
-                let _ = graphics::draw(ctx, &mesh, graphics::DrawParam::new());
+
+                let camera = self.world.fetch::<Camera>();
+                let drawparam = camera.make_drawparam();
+                let _ = graphics::draw(ctx, &mesh, drawparam);
             }
         }
 
@@ -338,15 +362,24 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         // input mouse position data to specs world and imgui
         self.imgui_wrapper.update_mouse_pos(x, y);
 
+        let prev_mouse_point = self.world.fetch::<MousePos>().0;
+
         let screen_size = graphics::drawable_size(ctx);
         let screen_coords = graphics::screen_coordinates(ctx);
+        let camera = self.world.fetch::<Camera>();
         let mouse_point = Vector::new(
-            x / screen_size.0 * screen_coords.w,
-            y / screen_size.1 * screen_coords.h,
+            ((x / screen_size.0 * screen_coords.w) - camera.pos.x) / camera.scale,
+            ((y / screen_size.1 * screen_coords.h) - camera.pos.y) / camera.scale,
         );
 
+        std::mem::drop(camera);
         self.world.insert(resources::MousePos(mouse_point));
 
+        use ggez::input::mouse;
+        let delta_mouse = mouse_point - prev_mouse_point;
+        if mouse::button_pressed(ctx, mouse::MouseButton::Middle) {
+            self.world.fetch_mut::<Camera>().translate(-delta_mouse);
+        }
         // unfinished Polyline stuff
         // {
         //     let mut create_shape_data = self.world.fetch_mut::<CreationData>();
@@ -671,5 +704,12 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
     fn text_input_event(&mut self, _ctx: &mut ggez::Context, val: char) {
         self.imgui_wrapper.update_text(val);
+    }
+
+    fn mouse_wheel_event(&mut self, _ctx: &mut ggez::Context, _x: f32, y: f32) {
+        let focus = self.world.fetch::<MousePos>().0;
+        self.world
+            .fetch_mut::<Camera>()
+            .change_scale(y * 0.05, focus);
     }
 }
