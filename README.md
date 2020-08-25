@@ -44,3 +44,7 @@ You can also find sample labs and tutorials at [https://mkhan45.github.io/SIMple
 ![](demo1.gif)
 ![](demo2.gif)
 ![](demo3.gif)
+
+### Tech details
+
+SIMple Mechanics is written in Rust using the `ggez` game engine, `npysics` physics engine, `specs` ECS, and `imgui-rs` GUI. I also used @iolivia's [`imgui-ggez-starter`](https://github.com/iolivia/imgui-ggez-starter).
