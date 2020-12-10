@@ -8,11 +8,19 @@ mod resources;
 mod lua;
 
 mod gui;
-use gui::graphs::SpeedGraph;
-use gui::imgui_wrapper::ImGuiWrapper;
 
 use ncollide2d as nc;
 use nphysics2d as np;
+
+mod components;
+use components::*;
+
+use gui::{
+    graphs::{RotGraph, RotVelGraph, SpeedGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph},
+    gui_systems::*,
+    imgui_wrapper::ImGuiWrapper,
+};
+use resources::HiDPIFactor;
 
 type Vector = nalgebra::Vector2<f32>;
 type Point = nalgebra::Point2<f32>;
@@ -28,15 +36,6 @@ type ShapeHandle = nc::shape::ShapeHandle<f32>;
 type ColliderHandle = np::object::DefaultColliderHandle;
 type RigidBody = np::object::RigidBody<f32>;
 type RigidBodyDesc = np::object::RigidBodyDesc<f32>;
-
-mod components;
-use components::*;
-
-use crate::{
-    gui::graphs::{RotGraph, RotVelGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph},
-    gui::gui_systems::*,
-};
-use resources::HiDPIFactor;
 
 const SCREEN_X: f32 = 20.0;
 const SCREEN_Y: f32 = 20.0;

@@ -99,7 +99,7 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
                 .speed(0.01)
                 .build();
 
-            let prev_grav = mechanical_world.gravity.y.clone();
+            let prev_grav = mechanical_world.gravity.y;
             ui.drag_float(im_str!("Gravity"), &mut mechanical_world.gravity.y)
                 .speed(0.1)
                 .build();

@@ -1,5 +1,5 @@
-use ggez::event::EventHandler;
 use ggez::{
+    event::EventHandler,
     graphics,
     input::{
         keyboard::{KeyCode, KeyMods},
@@ -11,25 +11,21 @@ use specs::prelude::*;
 
 use crate::{
     BodySet, Collider, ColliderSet, ForceGeneratorSet, GeometricalWorld, JointConstraintSet,
-    MechanicalWorld, Vector,
+    MechanicalWorld, Vector, SCREEN_X, SCREEN_Y,
 };
-use crate::{SCREEN_X, SCREEN_Y};
 
 use crate::components::*;
 
 use crate::resources::{
-    self, CreateElasticity, CreateFriction, CreateMass, CreateShapeStatic, FrameSteps, MousePos,
-    Paused, ShapeInfo,
+    self, Camera, CreateElasticity, CreateFriction, CreateMass, CreateShapeCentered,
+    CreateShapeStatic, CreationData, FrameSteps, GraphPosData, HiDPIFactor, MousePos,
+    MouseStartPos, MovingGraph, Paused, ScalingGraph, ShapeInfo,
 };
 
 use crate::gui::imgui_wrapper::{ImGuiWrapper, UiChoice};
 
 use ncollide2d as nc;
 use nphysics2d as np;
-use resources::{
-    Camera, CreateShapeCentered, CreationData, GraphPosData, HiDPIFactor, MouseStartPos,
-    MovingGraph, ScalingGraph,
-};
 
 pub mod body_builder;
 use body_builder::BodyBuilder;
