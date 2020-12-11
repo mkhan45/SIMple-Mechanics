@@ -88,57 +88,8 @@ impl<'a, 'b> MainState<'a, 'b> {
             body_set.get_mut(body.body_handle).unwrap().activate();
         });
     }
-}
 
-impl<'a, 'b> EventHandler for MainState<'a, 'b> {
-    fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        {
-            self.world.insert(resources::DT(ggez::timer::delta(ctx)));
-            self.world.insert(resources::FPS(ggez::timer::fps(ctx)));
-
-            self.world.maintain();
-
-            self.process_gui_signals();
-            self.lua_update();
-
-            self.dispatcher.dispatch(&self.world);
-        }
-
-        {
-            // camera keyboard movement
-            use ggez::input::keyboard;
-
-            let mut camera = self.world.fetch_mut::<Camera>();
-            const SPEED: f32 = 0.5;
-
-            if keyboard::is_key_pressed(ctx, KeyCode::Up) {
-                camera.translate(Vector::new(0.0, -SPEED));
-            }
-            if keyboard::is_key_pressed(ctx, KeyCode::Down) {
-                camera.translate(Vector::new(0.0, SPEED));
-            }
-            if keyboard::is_key_pressed(ctx, KeyCode::Left) {
-                camera.translate(Vector::new(-SPEED, 0.0));
-            }
-            if keyboard::is_key_pressed(ctx, KeyCode::Right) {
-                camera.translate(Vector::new(SPEED, 0.0));
-            }
-        }
-
-        {
-            // only one physics body should have the InfoDisplayed component;
-            // maybe it should be a resource: TODO
-            let info_displayed = self.world.read_storage::<InfoDisplayed>();
-            let entities = self.world.entities();
-            if let Some((_, entity)) = (&info_displayed, &entities).join().next() {
-                self.imgui_wrapper.remove_sidemenu();
-                self.imgui_wrapper
-                    .shown_menus
-                    .insert(UiChoice::SideMenu(entity));
-            }
-        }
-
-        // run the physics step
+    pub fn physics_step(&mut self) {
         let geometrical_world = &mut self.world.fetch_mut::<GeometricalWorld>();
         let body_set = &mut *self.world.fetch_mut::<BodySet>();
         let collider_set = &mut *self.world.fetch_mut::<ColliderSet>();
@@ -163,6 +114,59 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 force_generator_set,
             );
         });
+    }
+
+    pub fn update_sidemenu(&mut self) {
+        // only one physics body should have the InfoDisplayed component;
+        // maybe it should be a resource: TODO
+        let info_displayed = self.world.read_storage::<InfoDisplayed>();
+        let entities = self.world.entities();
+        if let Some((_, entity)) = (&info_displayed, &entities).join().next() {
+            self.imgui_wrapper.remove_sidemenu();
+            self.imgui_wrapper
+                .shown_menus
+                .insert(UiChoice::SideMenu(entity));
+        }
+    }
+
+    pub fn move_camera(&mut self, ctx: &mut ggez::Context) {
+        use ggez::input::keyboard;
+
+        let mut camera = self.world.fetch_mut::<Camera>();
+        const SPEED: f32 = 0.5;
+
+        if keyboard::is_key_pressed(ctx, KeyCode::Up) {
+            camera.translate(Vector::new(0.0, -SPEED));
+        }
+        if keyboard::is_key_pressed(ctx, KeyCode::Down) {
+            camera.translate(Vector::new(0.0, SPEED));
+        }
+        if keyboard::is_key_pressed(ctx, KeyCode::Left) {
+            camera.translate(Vector::new(-SPEED, 0.0));
+        }
+        if keyboard::is_key_pressed(ctx, KeyCode::Right) {
+            camera.translate(Vector::new(SPEED, 0.0));
+        }
+    }
+}
+
+impl<'a, 'b> EventHandler for MainState<'a, 'b> {
+    fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        {
+            self.world.insert(resources::DT(ggez::timer::delta(ctx)));
+            self.world.insert(resources::FPS(ggez::timer::fps(ctx)));
+
+            self.world.maintain();
+
+            self.process_gui_signals();
+            self.lua_update();
+
+            self.dispatcher.dispatch(&self.world);
+        }
+
+        self.move_camera(ctx);
+        self.update_sidemenu();
+        self.physics_step();
 
         Ok(())
     }
@@ -261,6 +265,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
             // draws the outlined circle and rect if you're creating an object
             self.draw_creation_gui(&mut mesh_builder);
+
             if let Ok(mesh) = mesh_builder.build(ctx) {
                 // this _will_ error if there's an empty screen, so just ignore it.
                 // Even if the error is something else it's pretty easy to tell
@@ -535,103 +540,47 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                     let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
                     let current_pos = self.world.fetch::<MousePos>().0;
                     let mouse_drag_vec = start_pos - current_pos;
-                    match (data, create_shape_centered) {
+                    let (translation, shape_info) = match (data, create_shape_centered) {
                         (ShapeInfo::Rectangle(_), true) => {
-                            BodyBuilder {
-                                translation: start_pos,
-                                rotation: 0.0,
-                                restitution: self.world.fetch::<CreateElasticity>().0,
-                                friction: self.world.fetch::<CreateFriction>().0,
-                                status,
-                                ..BodyBuilder::from_world(
-                                    &self.world,
-                                    ShapeInfo::Rectangle(Some(mouse_drag_vec.abs())),
-                                    self.world.fetch::<CreateMass>().0,
-                                )
-                            }
-                            .create();
-                            std::mem::drop(create_shape_opt);
-                            self.world.insert(CreationData(None));
+                            (start_pos, ShapeInfo::Rectangle(Some(mouse_drag_vec.abs())))
                         }
                         (ShapeInfo::Rectangle(_), false) => {
                             let mut start_pos = start_pos;
-                            if mouse_drag_vec.x < 0.0 {
-                                start_pos.x += mouse_drag_vec.x.abs();
-                            }
-                            if mouse_drag_vec.y < 0.0 {
-                                start_pos.y += mouse_drag_vec.y.abs();
-                            }
+                            start_pos.x +=
+                                mouse_drag_vec.x.abs() * (mouse_drag_vec.x < 0.0) as usize as f32;
+                            start_pos.y +=
+                                mouse_drag_vec.y.abs() * (mouse_drag_vec.y < 0.0) as usize as f32;
+                            (
+                                start_pos - mouse_drag_vec.abs() / 2.0,
+                                ShapeInfo::Rectangle(Some(mouse_drag_vec.abs() / 2.0)),
+                            )
+                        }
+                        (ShapeInfo::Circle(_), true) => (
+                            start_pos,
+                            ShapeInfo::Circle(Some(mouse_drag_vec.norm().max(0.001))),
+                        ),
+                        (ShapeInfo::Circle(_), false) => (
+                            start_pos - mouse_drag_vec / 2.0,
+                            ShapeInfo::Circle(Some((mouse_drag_vec.norm() / 2.0).max(0.001))),
+                        ),
+                        _ => todo!(),
+                    };
 
-                            BodyBuilder {
-                                translation: start_pos - mouse_drag_vec.abs() / 2.0,
-                                rotation: 0.0,
-                                restitution: self.world.fetch::<CreateElasticity>().0,
-                                friction: self.world.fetch::<CreateFriction>().0,
-                                status,
-                                ..BodyBuilder::from_world(
-                                    &self.world,
-                                    ShapeInfo::Rectangle(Some(mouse_drag_vec.abs() / 2.0)),
-                                    self.world.fetch::<CreateMass>().0,
-                                )
-                            }
-                            .create();
-                            std::mem::drop(create_shape_opt);
-                            self.world.insert(CreationData(None));
-                        }
-                        (ShapeInfo::Circle(_), true) => {
-                            BodyBuilder {
-                                translation: start_pos,
-                                rotation: 0.0,
-                                restitution: self.world.fetch::<CreateElasticity>().0,
-                                friction: self.world.fetch::<CreateFriction>().0,
-                                status,
-                                ..BodyBuilder::from_world(
-                                    &self.world,
-                                    ShapeInfo::Circle(Some(mouse_drag_vec.norm().max(0.001))),
-                                    self.world.fetch::<CreateMass>().0,
-                                )
-                            }
-                            .create();
-                            std::mem::drop(create_shape_opt);
-                            self.world.insert(CreationData(None));
-                        }
-                        (ShapeInfo::Circle(_), false) => {
-                            BodyBuilder {
-                                translation: start_pos - mouse_drag_vec / 2.0,
-                                rotation: 0.0,
-                                restitution: self.world.fetch::<CreateElasticity>().0,
-                                friction: self.world.fetch::<CreateFriction>().0,
-                                status,
-                                ..BodyBuilder::from_world(
-                                    &self.world,
-                                    ShapeInfo::Circle(Some(
-                                        (mouse_drag_vec.norm() / 2.0).max(0.001),
-                                    )),
-                                    self.world.fetch::<CreateMass>().0,
-                                )
-                            }
-                            .create();
-                            std::mem::drop(create_shape_opt);
-                            self.world.insert(CreationData(None));
-                        }
-                        (ShapeInfo::Polygon(_), _) => {}
-                        (ShapeInfo::Polyline(Some(points)), _) => {
-                            BodyBuilder {
-                                restitution: self.world.fetch::<CreateElasticity>().0,
-                                friction: self.world.fetch::<CreateFriction>().0,
-                                status,
-                                ..BodyBuilder::from_world(
-                                    &self.world,
-                                    ShapeInfo::Polyline(Some(points.clone())),
-                                    self.world.fetch::<CreateMass>().0,
-                                )
-                            }
-                            .create();
-                            std::mem::drop(create_shape_opt);
-                            self.world.insert(CreationData(None));
-                        }
-                        (ShapeInfo::Polyline(None), _) => unreachable!(),
+                    BodyBuilder {
+                        translation,
+                        rotation: 0.0,
+                        restitution: self.world.fetch::<CreateElasticity>().0,
+                        friction: self.world.fetch::<CreateFriction>().0,
+                        status,
+                        ..BodyBuilder::from_world(
+                            &self.world,
+                            shape_info,
+                            self.world.fetch::<CreateMass>().0,
+                        )
                     }
+                    .create();
+                    std::mem::drop(create_shape_opt);
+                    self.world.insert(CreationData(None));
                 }
             }
 
