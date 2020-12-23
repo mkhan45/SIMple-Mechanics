@@ -40,7 +40,6 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
         self.move_camera(ctx);
         self.update_sidemenu();
-        self.physics_step();
 
         Ok(())
     }

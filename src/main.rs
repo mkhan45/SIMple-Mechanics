@@ -22,6 +22,8 @@ use gui::{
 };
 use resources::HiDPIFactor;
 
+use main_state::physics_sys::PhysicsSys;
+
 type Vector = nalgebra::Vector2<f32>;
 type Point = nalgebra::Point2<f32>;
 
@@ -151,16 +153,17 @@ fn main() -> ggez::GameResult {
     // but still can't really be properly multithreaded because
     // they all use the nphysics stuff
     let mut dispatcher = DispatcherBuilder::new()
-        .with(SelectedMoveSys, "selected_move_sys", &[])
-        .with(SpeedGraphSys::default(), "speed_graph_sys", &[])
-        .with(RotVelGraphSys::default(), "rotvel_graph_sys", &[])
-        .with(XPosGraphSys::default(), "x_pos_graph_sys", &[])
-        .with(YPosGraphSys::default(), "y_pos_graph_sys", &[])
-        .with(XVelGraphSys::default(), "x_vel_graph_sys", &[])
-        .with(YVelGraphSys::default(), "y_vel_graph_sys", &[])
-        .with(RotGraphSys::default(), "rot_graph_sys", &[])
-        .with(MinMaxGraphSys, "graph_minmax_sys", &[])
-        .with(GraphTransformSys, "graph_transform_sys", &[])
+        .with(PhysicsSys, "physics_sys", &[])
+        .with(SelectedMoveSys, "selected_move_sys", &["physics_sys"])
+        .with(SpeedGraphSys::default(), "speed_graph_sys", &["physics_sys"])
+        .with(RotVelGraphSys::default(), "rotvel_graph_sys", &["physics_sys"])
+        .with(XPosGraphSys::default(), "x_pos_graph_sys", &["physics_sys"])
+        .with(YPosGraphSys::default(), "y_pos_graph_sys", &["physics_sys"])
+        .with(XVelGraphSys::default(), "x_vel_graph_sys", &["physics_sys"])
+        .with(YVelGraphSys::default(), "y_vel_graph_sys", &["physics_sys"])
+        .with(RotGraphSys::default(), "rot_graph_sys", &["physics_sys"])
+        .with(MinMaxGraphSys, "graph_minmax_sys", &["physics_sys"])
+        .with(GraphTransformSys, "graph_transform_sys", &["physics_sys"])
         .build();
 
     dispatcher.setup(&mut world);

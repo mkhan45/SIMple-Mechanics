@@ -3,13 +3,12 @@ use ggez::input::keyboard::KeyCode;
 use specs::prelude::*;
 
 use crate::{
-    BodySet, Collider, ColliderSet, ForceGeneratorSet, GeometricalWorld, JointConstraintSet,
-    MechanicalWorld, Vector,
+    BodySet, Collider, ColliderSet, Vector,
 };
 
 use crate::components::*;
 
-use crate::resources::{self, Camera, FrameSteps, Paused};
+use crate::resources::Camera;
 
 use crate::gui::imgui_wrapper::{ImGuiWrapper, UiChoice};
 
@@ -20,6 +19,8 @@ mod draw_shape_sys;
 
 mod event_handler;
 pub use event_handler::*;
+
+pub mod physics_sys;
 
 pub struct MainState<'a, 'b> {
     pub world: specs::World,
@@ -72,33 +73,6 @@ impl<'a, 'b> MainState<'a, 'b> {
 
         bodies.join().for_each(|body| {
             body_set.get_mut(body.body_handle).unwrap().activate();
-        });
-    }
-
-    pub fn physics_step(&mut self) {
-        let geometrical_world = &mut self.world.fetch_mut::<GeometricalWorld>();
-        let body_set = &mut *self.world.fetch_mut::<BodySet>();
-        let collider_set = &mut *self.world.fetch_mut::<ColliderSet>();
-        let joint_constraint_set = &mut *self.world.fetch_mut::<JointConstraintSet>();
-        let force_generator_set = &mut *self.world.fetch_mut::<ForceGeneratorSet>();
-        let mut mechanical_world = self.world.fetch_mut::<MechanicalWorld>();
-
-        // not running the physics step at all when paused causes some weird behavior,
-        // so just run it with a timestep of 0
-        if self.world.fetch::<Paused>().0 {
-            mechanical_world.set_timestep(0.0);
-        } else {
-            mechanical_world.set_timestep(self.world.fetch::<resources::Timestep>().0);
-        }
-
-        (0..self.world.fetch::<FrameSteps>().0).for_each(|_| {
-            mechanical_world.step(
-                geometrical_world,
-                body_set,
-                collider_set,
-                joint_constraint_set,
-                force_generator_set,
-            );
         });
     }
 
