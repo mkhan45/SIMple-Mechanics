@@ -6,8 +6,8 @@ use crate::{SCREEN_X, SCREEN_Y};
 
 use nphysics2d as np;
 
-use super::draw_sys;
-use draw_sys::{DrawCreationGUISys, DrawShapesSys};
+use crate::gui::draw_creation_gui_sys::DrawCreationGUISys;
+use draw_shape_sys::DrawShapesSys;
 
 use crate::resources::{
     self, Camera, CreateElasticity, CreateFriction, CreateMass, CreateShapeCentered,
@@ -79,7 +79,6 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
         {
             // draw the graph and labels for the midpoint, top, and bottom
-
             let (graph_text, graph_builder) = self.draw_graphs();
             if let Ok(mesh) = graph_builder.build(ctx) {
                 let graph_rect = self.world.fetch::<GraphPosData>().0;
@@ -181,18 +180,6 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         if mouse::button_pressed(ctx, mouse::MouseButton::Middle) {
             self.world.fetch_mut::<Camera>().translate(-delta_mouse);
         }
-        // unfinished Polyline stuff
-        // {
-        //     let mut create_shape_data = self.world.fetch_mut::<CreationData>();
-        //     if input::mouse::button_pressed(ctx, MouseButton::Left)
-        //         && ggez::timer::ticks(ctx) % 10 == 0
-        //     {
-        //         if let Some(ShapeInfo::Polyline(Some(points))) = create_shape_data.0.as_mut() {
-        //             let mouse_pos = self.world.fetch::<resources::MousePos>().0;
-        //             points.push(Point::new(mouse_pos.x, mouse_pos.y));
-        //         }
-        //     }
-        // }
     }
 
     fn mouse_button_down_event(
@@ -218,6 +205,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             x / screen_size.0 * screen_coords.w,
             y / screen_size.1 * screen_coords.h,
         );
+
         self.world
             .insert(resources::MouseStartPos(Some(mouse_point)));
 
@@ -238,14 +226,6 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 // if left click overlaps a shape, set the entity to be Selected
                 if let Some(entity) = get_hovered_shape(&self.world) {
                     self.world.insert(resources::Selected(Some(entity)));
-                }
-
-                {
-                    // unfinished polyline creation stuff
-                    // let mut create_shape_data = self.world.fetch_mut::<CreationData>();
-                    // if let Some(ShapeInfo::Polygon(Some(points))) = create_shape_data.0.as_mut() {
-                    //     points.push(mouse_point.into());
-                    // }
                 }
             }
             MouseButton::Right => {
@@ -278,34 +258,10 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                         }
                         None => {
                             info_displayed.clear();
-
-                            // remove all the sidemenus in shown menus
-                            self.imgui_wrapper
-                                .shown_menus
-                                .retain(|menu| !matches!(menu, UiChoice::SideMenu(_)));
+                            self.imgui_wrapper.remove_sidemenu();
                         }
                     }
                 }
-
-                // nonworking polygon stuff
-                // {
-                //     let create_shape_data = self.world.fetch::<CreationData>();
-                //     if let Some(ShapeInfo::Polygon(Some(_points))) = &create_shape_data.0.clone() {
-                //         let start_pos = self.world.fetch::<MouseStartPos>().0.unwrap();
-                //         BodyBuilder {
-                //             translation: start_pos,
-                //             rotation: 0.0,
-                //             restitution: self.world.fetch::<CreateElasticity>().0,
-                //             friction: self.world.fetch::<CreateFriction>().0,
-                //             ..BodyBuilder::from_world(
-                //                 &self.world,
-                //                 create_shape_data.0.as_ref().unwrap().clone(),
-                //                 self.world.fetch::<CreateMass>().0,
-                //             )
-                //         }
-                //         .create();
-                //     }
-                // }
             }
             _ => {}
         }
@@ -424,14 +380,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                 self.delete_all();
             }
             (KeyCode::D, KeyMods::NONE) => {
-                let found_sidepanel_entity =
-                    self.imgui_wrapper.shown_menus.iter().find_map(|signal| {
-                        if let UiChoice::SideMenu(entity) = signal {
-                            Some(*entity)
-                        } else {
-                            None
-                        }
-                    });
+                let found_sidepanel_entity = self.imgui_wrapper.find_sidemenu_entity();
 
                 if let Some(sidepanel_entity) = found_sidepanel_entity {
                     self.delete_entity(sidepanel_entity);

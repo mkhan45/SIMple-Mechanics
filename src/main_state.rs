@@ -16,7 +16,7 @@ use crate::gui::imgui_wrapper::{ImGuiWrapper, UiChoice};
 pub mod body_builder;
 mod util;
 
-mod draw_sys;
+mod draw_shape_sys;
 
 mod event_handler;
 pub use event_handler::*;

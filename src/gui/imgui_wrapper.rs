@@ -171,6 +171,16 @@ impl ImGuiWrapper {
             .retain(|menu| !matches!(menu, UiChoice::SideMenu(_)));
     }
 
+    pub fn find_sidemenu_entity(&self) -> Option<Entity> {
+        self.shown_menus.iter().find_map(|signal| {
+            if let UiChoice::SideMenu(entity) = signal {
+                Some(*entity)
+            } else {
+                None
+            }
+        })
+    }
+
     fn update_mouse(&mut self) {
         self.imgui.io_mut().mouse_pos =
             [self.mouse_state.pos.0 as f32, self.mouse_state.pos.1 as f32];
@@ -208,6 +218,7 @@ impl ImGuiWrapper {
 
         self.imgui.io_mut().keys_down[key as usize] = false;
     }
+
     pub fn update_key_down(&mut self, key: KeyCode, mods: KeyMods) {
         if mods.contains(KeyMods::SHIFT) {
             self.imgui.io_mut().key_shift = true;
