@@ -3,15 +3,14 @@ use ggez::graphics::{self, Rect};
 
 #[derive(Copy, Clone)]
 pub struct MousePos(pub Vector);
-
-#[derive(Copy, Clone)]
-pub struct MouseStartPos(pub Option<Vector>);
-
 impl Default for MousePos {
     fn default() -> Self {
         MousePos(Vector::new(0.0, 0.0))
     }
 }
+
+#[derive(Copy, Clone, Default)]
+pub struct MouseStartPos(pub Option<Vector>);
 
 #[derive(Copy, Clone)]
 pub struct Resolution(pub Vector);
@@ -43,8 +42,12 @@ pub enum ShapeInfo {
     Polyline(Option<Vec<Point>>),
 }
 
+#[derive(Default)]
 pub struct CreationData(pub Option<ShapeInfo>);
+
+#[derive(Default)]
 pub struct CreateShapeCentered(pub bool);
+
 impl CreateShapeCentered {
     pub fn toggle(&mut self) {
         self.0 = !self.0;

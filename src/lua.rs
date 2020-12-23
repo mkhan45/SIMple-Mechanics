@@ -26,7 +26,7 @@ use rlua::prelude::*;
 //
 // The solution I'm thinking of is having the user pass in a Lua function
 // which accepts a physics object as a Lua table and outputs a new Lua table
-// physics object. 
+// physics object.
 //
 // Using this pure sort of function extra Lua glue can be written so that users
 // can easily construct functions which handle integration and collision math separately.

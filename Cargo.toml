@@ -12,7 +12,7 @@ ncollide2d = "0.23"
 nphysics2d = "0.15.1"
 
 ggez = "0.5.1"
-specs = { version = "0.15.1", features = ["specs-derive"] }
+specs = { version = "0.15.1", features = ["specs-derive", "nightly"] }
 
 smallvec = "1.4.0"
 
