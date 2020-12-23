@@ -57,14 +57,14 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             let mut draw_shapes_sys = DrawShapesSys {
                 mesh_builder: &mut mesh_builder,
             };
-            draw_shapes_sys.run_now(&mut self.world);
+            draw_shapes_sys.run_now(&self.world);
 
             // draws the outlined circle and rect if you're creating an object
             // self.draw_creation_gui(&mut mesh_builder);
             let mut draw_creation_gui_sys = DrawCreationGUISys {
                 mesh_builder: &mut mesh_builder,
             };
-            draw_creation_gui_sys.run_now(&mut self.world);
+            draw_creation_gui_sys.run_now(&self.world);
 
             if let Ok(mesh) = mesh_builder.build(ctx) {
                 // this _will_ error if there's an empty screen, so just ignore it.

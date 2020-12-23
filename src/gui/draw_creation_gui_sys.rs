@@ -1,4 +1,3 @@
-use ggez;
 use ggez::graphics::{self, DrawMode, MeshBuilder};
 
 use specs::prelude::*;
