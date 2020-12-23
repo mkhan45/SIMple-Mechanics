@@ -17,6 +17,20 @@ use specs::prelude::*;
 
 use rlua::prelude::*;
 
+// TODO:
+// A way to interact with shapes that have already been instantiated,
+// also a way to set custom collision math
+//
+// This is more difficult than it seems since it's difficult to access
+// the ECS fom a Lua function.
+//
+// The solution I'm thinking of is having the user pass in a Lua function
+// which accepts a physics object as a Lua table and outputs a new Lua table
+// physics object. 
+//
+// Using this pure sort of function extra Lua glue can be written so that users
+// can easily construct functions which handle integration and collision math separately.
+
 pub trait LuaResExt {
     fn run_lua_code(&mut self, code: String);
     fn run_lua_file(&self, filename: impl AsRef<std::path::Path> + std::clone::Clone);
