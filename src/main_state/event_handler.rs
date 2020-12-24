@@ -87,8 +87,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                     ctx,
                     &mesh,
                     graphics::DrawParam::new()
-                    .dest([graph_rect.x, graph_rect.y])
-                    .scale([scale_fac, scale_fac]),
+                        .dest([graph_rect.x, graph_rect.y])
+                        .scale([scale_fac, scale_fac]),
                 );
 
                 // redundant since we just iterate later
@@ -98,19 +98,19 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
                 [max_text, mid_text, min_text]
                     .iter()
-                        .zip(y_translations.iter())
-                        .for_each(|(text, y_translation)| {
-                            let _ = graphics::draw(
-                                ctx,
-                                text,
-                                graphics::DrawParam::new()
+                    .zip(y_translations.iter())
+                    .for_each(|(text, y_translation)| {
+                        let _ = graphics::draw(
+                            ctx,
+                            text,
+                            graphics::DrawParam::new()
                                 .dest([
                                     graph_rect.x + 0.25 * scale_fac,
                                     graph_rect.y + y_translation * scale_fac,
                                 ])
                                 .scale([0.025 * scale_fac, 0.025 * scale_fac]),
-                            );
-                        });
+                        );
+                    });
             }
         }
 
@@ -118,7 +118,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             let hidpi_factor = self.world.fetch::<HiDPIFactor>().0;
             self.imgui_wrapper
                 .render(ctx, hidpi_factor, &mut self.world);
-            }
+        }
 
         graphics::present(ctx)?;
 
@@ -128,11 +128,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     fn resize_event(&mut self, ctx: &mut ggez::Context, width: f32, height: f32) {
         use screen_resize_sys::ScreenResizeSys;
 
-        let mut screen_resize_sys = ScreenResizeSys {
-            height,
-            width,
-            ctx,
-        };
+        let mut screen_resize_sys = ScreenResizeSys { height, width, ctx };
 
         screen_resize_sys.run_now(&self.world);
     }
@@ -173,9 +169,9 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         //    mouse_button_up_event)
 
         self.imgui_wrapper.update_mouse_down((
-                btn == MouseButton::Left,
-                btn == MouseButton::Right,
-                btn == MouseButton::Middle,
+            btn == MouseButton::Left,
+            btn == MouseButton::Right,
+            btn == MouseButton::Middle,
         ));
 
         let screen_size = graphics::drawable_size(ctx);
@@ -341,11 +337,11 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             (KeyCode::B, KeyMods::NONE) => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Rectangle(None))));
-                }
+            }
             (KeyCode::C, KeyMods::NONE) => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Circle(None))));
-                }
+            }
             (KeyCode::Space, KeyMods::NONE) => {
                 self.world.fetch_mut::<Paused>().toggle();
             }

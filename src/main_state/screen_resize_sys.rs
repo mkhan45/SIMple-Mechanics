@@ -1,10 +1,10 @@
-use specs::prelude::*;
-use ggez::Context;
 use ggez::graphics;
+use ggez::Context;
+use specs::prelude::*;
 
 use crate::resources::{Resolution, ScaleFac};
 
-use crate::{SCREEN_X, SCREEN_Y, Vector};
+use crate::{Vector, SCREEN_X, SCREEN_Y};
 
 pub struct ScreenResizeSys<'c> {
     pub height: f32,
@@ -13,10 +13,7 @@ pub struct ScreenResizeSys<'c> {
 }
 
 impl<'a, 'c> System<'a> for ScreenResizeSys<'c> {
-    type SystemData = (
-        Write<'a, Resolution>,
-        Write<'a, ScaleFac>,
-    );
+    type SystemData = (Write<'a, Resolution>, Write<'a, ScaleFac>);
 
     fn run(&mut self, (mut resolution, mut scale_fac): Self::SystemData) {
         // making width increase with respect to the height reveals more things
@@ -31,14 +28,14 @@ impl<'a, 'c> System<'a> for ScreenResizeSys<'c> {
                 self.ctx,
                 graphics::Rect::new(0.0, 0.0, new_width, SCREEN_Y),
             )
-                .expect("error resizing");
-            } else {
-                let new_height = SCREEN_Y * aspect_ratio;
-                graphics::set_screen_coordinates(
-                    self.ctx,
-                    graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
-                )
-                    .expect("error resizing");
+            .expect("error resizing");
+        } else {
+            let new_height = SCREEN_Y * aspect_ratio;
+            graphics::set_screen_coordinates(
+                self.ctx,
+                graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
+            )
+            .expect("error resizing");
         }
 
         resolution.0 = Vector::new(self.width, self.height);

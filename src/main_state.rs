@@ -2,9 +2,7 @@ use ggez::input::keyboard::KeyCode;
 
 use specs::prelude::*;
 
-use crate::{
-    BodySet, Collider, ColliderSet, Vector,
-};
+use crate::{BodySet, Collider, ColliderSet, Vector};
 
 use crate::components::*;
 

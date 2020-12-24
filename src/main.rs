@@ -44,8 +44,8 @@ const SCREEN_Y: f32 = 20.0;
 
 fn main() -> ggez::GameResult {
     // create a mutable reference to a ggez `Context` and `EventsLoop`
-    let (ctx, event_loop) = &mut ggez::ContextBuilder::new("Physics", "Mikail Khan")
-        .window_setup(ggez::conf::WindowSetup::default().title("Physics"))
+    let (ctx, event_loop) = &mut ggez::ContextBuilder::new("SIMple Physics", "Mikail Khan")
+        .window_setup(ggez::conf::WindowSetup::default().title("SIMple Physics"))
         .build()
         .unwrap();
 
@@ -148,15 +148,19 @@ fn main() -> ggez::GameResult {
 
     // The specs dispatcher takes a bunch of systems and tries to
     // run them in parallel. dispatcher.dispatch() is run every frame
-    //
-    // none of the systems really depend on each other
-    // but still can't really be properly multithreaded because
-    // they all use the nphysics stuff
     let mut dispatcher = DispatcherBuilder::new()
         .with(PhysicsSys, "physics_sys", &[])
         .with(SelectedMoveSys, "selected_move_sys", &["physics_sys"])
-        .with(SpeedGraphSys::default(), "speed_graph_sys", &["physics_sys"])
-        .with(RotVelGraphSys::default(), "rotvel_graph_sys", &["physics_sys"])
+        .with(
+            SpeedGraphSys::default(),
+            "speed_graph_sys",
+            &["physics_sys"],
+        )
+        .with(
+            RotVelGraphSys::default(),
+            "rotvel_graph_sys",
+            &["physics_sys"],
+        )
         .with(XPosGraphSys::default(), "x_pos_graph_sys", &["physics_sys"])
         .with(YPosGraphSys::default(), "y_pos_graph_sys", &["physics_sys"])
         .with(XVelGraphSys::default(), "x_vel_graph_sys", &["physics_sys"])

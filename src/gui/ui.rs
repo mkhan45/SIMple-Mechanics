@@ -71,18 +71,6 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
                 ui,
                 signals
             );
-            // signal_button!(
-            //     "Polygon",
-            //     UiSignal::AddShape(ShapeInfo::Polygon(Some(Vec::with_capacity(3)))),
-            //     ui,
-            //     signals
-            // );
-            // signal_button!(
-            //     "Line",
-            //     UiSignal::AddShape(ShapeInfo::Polyline(Some(Vec::with_capacity(30)))),
-            //     ui,
-            //     signals
-            // );
         });
 
         ui.separator();
