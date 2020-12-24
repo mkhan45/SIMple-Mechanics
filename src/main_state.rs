@@ -16,6 +16,7 @@ pub mod body_builder;
 mod util;
 
 mod draw_shape_sys;
+mod screen_resize_sys;
 
 mod event_handler;
 pub use event_handler::*;

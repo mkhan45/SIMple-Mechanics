@@ -137,7 +137,7 @@ macro_rules! create_linegraph {
                 $structname {
                     data: VecDeque::with_capacity(60 * 10 / 4),
                     shown: true,
-                    max_len: 60 * 5,
+                    max_len: 60 * 10,
                 }
             }
         }
@@ -234,7 +234,6 @@ impl<'a, 'b> MainState<'a, 'b> {
 
         let mut builder = MeshBuilder::new();
 
-        // let speed_graphs = self.world.read_storage::<SpeedGraph>();
         let colors = self.world.read_storage::<components::Color>();
         let GraphMinMax(min, max) = *self.world.fetch::<GraphMinMax>();
         let midpoint = (min + max) / 2.0;

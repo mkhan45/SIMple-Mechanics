@@ -2,11 +2,10 @@ use super::body_builder::BodyBuilder;
 use super::util::*;
 use super::*;
 
-use crate::{SCREEN_X, SCREEN_Y};
-
 use nphysics2d as np;
 
 use crate::gui::draw_creation_gui_sys::DrawCreationGUISys;
+
 use draw_shape_sys::DrawShapesSys;
 
 use crate::resources::{
@@ -76,6 +75,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             }
         }
 
+        // ideally this block should be refactored to a system for each of the graphs
+        // and a system to combine them all
         {
             // draw the graph and labels for the midpoint, top, and bottom
             let (graph_text, graph_builder) = self.draw_graphs();
@@ -86,8 +87,8 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
                     ctx,
                     &mesh,
                     graphics::DrawParam::new()
-                        .dest([graph_rect.x, graph_rect.y])
-                        .scale([scale_fac, scale_fac]),
+                    .dest([graph_rect.x, graph_rect.y])
+                    .scale([scale_fac, scale_fac]),
                 );
 
                 // redundant since we just iterate later
@@ -97,19 +98,19 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
 
                 [max_text, mid_text, min_text]
                     .iter()
-                    .zip(y_translations.iter())
-                    .for_each(|(text, y_translation)| {
-                        let _ = graphics::draw(
-                            ctx,
-                            text,
-                            graphics::DrawParam::new()
+                        .zip(y_translations.iter())
+                        .for_each(|(text, y_translation)| {
+                            let _ = graphics::draw(
+                                ctx,
+                                text,
+                                graphics::DrawParam::new()
                                 .dest([
                                     graph_rect.x + 0.25 * scale_fac,
                                     graph_rect.y + y_translation * scale_fac,
                                 ])
                                 .scale([0.025 * scale_fac, 0.025 * scale_fac]),
-                        );
-                    });
+                            );
+                        });
             }
         }
 
@@ -117,7 +118,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             let hidpi_factor = self.world.fetch::<HiDPIFactor>().0;
             self.imgui_wrapper
                 .render(ctx, hidpi_factor, &mut self.world);
-        }
+            }
 
         graphics::present(ctx)?;
 
@@ -125,36 +126,15 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     }
 
     fn resize_event(&mut self, ctx: &mut ggez::Context, width: f32, height: f32) {
-        // making width increase with respect to the height reveals more things
-        // making the height increase with respect to the width scales everything down
+        use screen_resize_sys::ScreenResizeSys;
 
-        let aspect_ratio = height / width;
-        let initial_ratio = 1.0;
+        let mut screen_resize_sys = ScreenResizeSys {
+            height,
+            width,
+            ctx,
+        };
 
-        if initial_ratio > aspect_ratio {
-            let new_width = SCREEN_X / aspect_ratio;
-            ggez::graphics::set_screen_coordinates(
-                ctx,
-                ggez::graphics::Rect::new(0.0, 0.0, new_width, SCREEN_Y),
-            )
-            .expect("error resizing");
-        } else {
-            let new_height = SCREEN_Y * aspect_ratio;
-            ggez::graphics::set_screen_coordinates(
-                ctx,
-                ggez::graphics::Rect::new(0.0, 0.0, SCREEN_X, new_height),
-            )
-            .expect("error resizing");
-        }
-
-        self.world
-            .insert(resources::Resolution(Vector::new(width, height)));
-
-        let screen_coords = graphics::screen_coordinates(ctx);
-        self.world.insert(resources::ScaleFac(Vector::new(
-            screen_coords.w / SCREEN_X,
-            screen_coords.h / SCREEN_Y,
-        )));
+        screen_resize_sys.run_now(&self.world);
     }
 
     fn mouse_motion_event(&mut self, ctx: &mut ggez::Context, x: f32, y: f32, _dx: f32, _dy: f32) {
@@ -193,9 +173,9 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
         //    mouse_button_up_event)
 
         self.imgui_wrapper.update_mouse_down((
-            btn == MouseButton::Left,
-            btn == MouseButton::Right,
-            btn == MouseButton::Middle,
+                btn == MouseButton::Left,
+                btn == MouseButton::Right,
+                btn == MouseButton::Middle,
         ));
 
         let screen_size = graphics::drawable_size(ctx);
@@ -361,11 +341,11 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
             (KeyCode::B, KeyMods::NONE) => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Rectangle(None))));
-            }
+                }
             (KeyCode::C, KeyMods::NONE) => {
                 self.world
                     .insert(CreationData(Some(ShapeInfo::Circle(None))));
-            }
+                }
             (KeyCode::Space, KeyMods::NONE) => {
                 self.world.fetch_mut::<Paused>().toggle();
             }
