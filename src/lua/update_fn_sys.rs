@@ -1,8 +1,8 @@
 use rlua::prelude::*;
 use specs::prelude::*;
 
-use crate::components::{Color, PhysicsBody, UpdateFunction};
-use crate::resources::LuaRes;
+use crate::components::{Color, Name, PhysicsBody, UpdateFunction};
+use crate::resources::{LuaRes, Paused};
 use crate::{BodySet, RigidBody, Vector};
 
 use nphysics2d as np;
@@ -15,39 +15,62 @@ impl<'a> System<'a> for LuaUpdateFnSys {
         WriteExpect<'a, BodySet>,
         ReadStorage<'a, UpdateFunction>,
         ReadStorage<'a, PhysicsBody>,
+        ReadStorage<'a, Name>,
         WriteStorage<'a, Color>,
         Read<'a, LuaRes>,
+        Read<'a, Paused>,
+        Entities<'a>,
     );
 
     fn run(
         &mut self,
-        (mut body_set, update_functions, physics_bodies, mut colors, lua_res): Self::SystemData,
+        (
+            mut body_set,
+            update_functions,
+            physics_bodies,
+            names,
+            mut colors,
+            lua_res,
+            paused,
+            entities,
+        ): Self::SystemData,
     ) {
-        lua_res.lock().unwrap().context(|lua_ctx| {
-            let globals = lua_ctx.globals();
+        if !paused.0 {
+            lua_res.lock().unwrap().context(|lua_ctx| {
+                let globals = lua_ctx.globals();
 
-            (&update_functions, &physics_bodies, &mut colors)
-                .join()
-                .for_each(|(UpdateFunction(fn_name), physics_body, color)| {
-                    let update_function: LuaFunction = globals.get(fn_name.as_str()).unwrap();
-                    let rigid_body = &mut body_set
-                        .get_mut(physics_body.body_handle)
-                        .unwrap()
-                        .downcast_mut::<RigidBody>()
-                        .unwrap();
+                (&update_functions, &physics_bodies, &mut colors, &entities)
+                    .join()
+                    .for_each(|(UpdateFunction(fn_name), physics_body, color, entity)| {
+                        let update_function: LuaFunction = globals.get(fn_name.as_str()).unwrap();
+                        let rigid_body = &mut body_set
+                            .get_mut(physics_body.body_handle)
+                            .unwrap()
+                            .downcast_mut::<RigidBody>()
+                            .unwrap();
 
-                    let obj_table = table_from_rigid_body(&rigid_body, &lua_ctx);
-                    let color_table = table_from_color(&color, &lua_ctx);
-                    obj_table.set("color", color_table).unwrap();
+                        let obj_table = table_from_rigid_body(&rigid_body, &lua_ctx);
+                        let color_table = table_from_color(&color, &lua_ctx);
+                        obj_table.set("color", color_table).unwrap();
 
-                    if let Ok(changed_obj_table) = update_function.call::<_, LuaTable>(obj_table) {
-                        update_rigid_body_from_table(rigid_body, &changed_obj_table);
+                        // you can't change the name in the Lua but they're
+                        // useful to read
+                        if let Some(Name(obj_name)) = names.get(entity) {
+                            obj_table.set("name", obj_name.clone()).unwrap();
+                        }
 
-                        let change_color_table: LuaTable = changed_obj_table.get("color").unwrap();
-                        update_color_from_table(&mut *color, &change_color_table);
-                    }
-                });
-        });
+                        if let Ok(changed_obj_table) =
+                            update_function.call::<_, LuaTable>(obj_table)
+                        {
+                            update_rigid_body_from_table(rigid_body, &changed_obj_table);
+
+                            let change_color_table: LuaTable =
+                                changed_obj_table.get("color").unwrap();
+                            update_color_from_table(&mut *color, &change_color_table);
+                        }
+                    });
+            });
+        }
     }
 }
 

@@ -40,5 +40,4 @@ add_shapes(
 GRAVITY = 0
 
 function update()
-    print(OBJECTS)
 end
