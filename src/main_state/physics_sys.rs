@@ -8,7 +8,7 @@ use crate::{
 pub struct PhysicsSys;
 
 impl<'a> System<'a> for PhysicsSys {
-    #[allow(clippy::clippy::type_complexity)]
+    #[allow(clippy::type_complexity)]
     type SystemData = (
         WriteExpect<'a, GeometricalWorld>,
         WriteExpect<'a, BodySet>,

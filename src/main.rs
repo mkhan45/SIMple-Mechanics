@@ -1,3 +1,4 @@
+#![feature(move_ref_pattern)]
 use specs::prelude::*;
 
 mod main_state;

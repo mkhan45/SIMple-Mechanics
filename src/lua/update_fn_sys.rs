@@ -1,7 +1,7 @@
 use rlua::prelude::*;
 use specs::prelude::*;
 
-use crate::components::{PhysicsBody, UpdateFunction};
+use crate::components::{Color, PhysicsBody, UpdateFunction};
 use crate::resources::LuaRes;
 use crate::{BodySet, RigidBody, Vector};
 
@@ -10,19 +10,25 @@ use nphysics2d as np;
 pub struct LuaUpdateFnSys;
 
 impl<'a> System<'a> for LuaUpdateFnSys {
+    #[allow(clippy::type_complexity)]
     type SystemData = (
         WriteExpect<'a, BodySet>,
         ReadStorage<'a, UpdateFunction>,
         ReadStorage<'a, PhysicsBody>,
+        WriteStorage<'a, Color>,
         Read<'a, LuaRes>,
     );
 
-    fn run(&mut self, (mut body_set, update_functions, physics_bodies, lua_res): Self::SystemData) {
+    fn run(
+        &mut self,
+        (mut body_set, update_functions, physics_bodies, mut colors, lua_res): Self::SystemData,
+    ) {
         lua_res.lock().unwrap().context(|lua_ctx| {
             let globals = lua_ctx.globals();
 
-            (&update_functions, &physics_bodies).join().for_each(
-                |(UpdateFunction(fn_name), physics_body)| {
+            (&update_functions, &physics_bodies, &mut colors)
+                .join()
+                .for_each(|(UpdateFunction(fn_name), physics_body, color)| {
                     let update_function: LuaFunction = globals.get(fn_name.as_str()).unwrap();
                     let rigid_body = &mut body_set
                         .get_mut(physics_body.body_handle)
@@ -31,14 +37,37 @@ impl<'a> System<'a> for LuaUpdateFnSys {
                         .unwrap();
 
                     let obj_table = table_from_rigid_body(&rigid_body, &lua_ctx);
+                    let color_table = table_from_color(&color, &lua_ctx);
+                    obj_table.set("color", color_table).unwrap();
 
                     if let Ok(changed_obj_table) = update_function.call::<_, LuaTable>(obj_table) {
                         update_rigid_body_from_table(rigid_body, &changed_obj_table);
+
+                        let change_color_table: LuaTable = changed_obj_table.get("color").unwrap();
+                        update_color_from_table(&mut *color, &change_color_table);
                     }
-                },
-            );
+                });
         });
     }
+}
+
+fn table_from_color<'a>(color: &Color, lua_ctx: &LuaContext<'a>) -> LuaTable<'a> {
+    let r = color.0.r * 255.0;
+    let g = color.0.g * 255.0;
+    let b = color.0.b * 255.0;
+
+    let c_table = lua_ctx.create_table().unwrap();
+    c_table.set("r", r).unwrap();
+    c_table.set("g", g).unwrap();
+    c_table.set("b", b).unwrap();
+
+    c_table
+}
+
+fn update_color_from_table<'a>(color: &mut Color, table: &LuaTable<'a>) {
+    color.0.r = table.get::<_, f32>("r").unwrap() / 255.0;
+    color.0.g = table.get::<_, f32>("g").unwrap() / 255.0;
+    color.0.b = table.get::<_, f32>("b").unwrap() / 255.0;
 }
 
 fn table_from_rigid_body<'a>(rigid_body: &RigidBody, lua_ctx: &LuaContext<'a>) -> LuaTable<'a> {
@@ -53,6 +82,7 @@ fn table_from_rigid_body<'a>(rigid_body: &RigidBody, lua_ctx: &LuaContext<'a>) -
     obj_table.set("y", pos.y).unwrap();
     obj_table.set("rot", rot).unwrap();
     obj_table.set("x_vel", vel.x).unwrap();
+    obj_table.set("y_vel", vel.y).unwrap();
     obj_table.set("y_vel", vel.y).unwrap();
 
     obj_table
