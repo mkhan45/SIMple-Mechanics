@@ -15,6 +15,8 @@ use nphysics2d as np;
 mod components;
 use components::*;
 
+use lua::update_fn_sys::LuaUpdateFnSys;
+
 use gui::{
     graphs::{RotGraph, RotVelGraph, SpeedGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph},
     gui_systems::*,
@@ -168,6 +170,7 @@ fn main() -> ggez::GameResult {
         .with(RotGraphSys::default(), "rot_graph_sys", &["physics_sys"])
         .with(MinMaxGraphSys, "graph_minmax_sys", &["physics_sys"])
         .with(GraphTransformSys, "graph_transform_sys", &["physics_sys"])
+        .with(LuaUpdateFnSys, "lua_update_fn", &["physics_sys"])
         .build();
 
     dispatcher.setup(&mut world);

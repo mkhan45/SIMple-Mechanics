@@ -17,6 +17,8 @@ use specs::prelude::*;
 
 use rlua::prelude::*;
 
+pub mod update_fn_sys;
+
 // TODO:
 // A way to interact with shapes that have already been instantiated,
 // also a way to set custom collision math
@@ -45,13 +47,13 @@ pub fn new_lua_res() -> LuaRes {
 
     let lua = Lua::new_with(lua_stdlib);
     lua.set_memory_limit(Some(262_144));
-    lua.set_hook(
-        rlua::HookTriggers {
-            every_nth_instruction: Some(75_000),
-            ..Default::default()
-        },
-        |_, _| panic!("Lua script exceeded instruction limit"),
-    );
+    // lua.set_hook(
+    //     rlua::HookTriggers {
+    //         every_nth_instruction: Some(75_000),
+    //         ..Default::default()
+    //     },
+    //     |_, _| panic!("Lua script exceeded instruction limit"),
+    // );
 
     lua.context(|lua_ctx| {
         let globals = lua_ctx.globals();
@@ -137,6 +139,8 @@ impl<'a, 'b> MainState<'a, 'b> {
                 let a = color.get("a").unwrap_or(255);
                 ggez::graphics::Color::from_rgba(r, g, b, a)
             });
+        let update_fn: Option<String> = shape.get("update_function").ok();
+
 
         #[allow(clippy::wildcard_in_or_patterns)]
         let status = match status.to_lowercase().as_str() {
@@ -167,6 +171,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             restitution: elasticity,
             friction,
             color,
+            update_fn,
             name: name.ok(),
             ..BodyBuilder::from_world(&self.world, shape_info, mass)
         }
@@ -287,7 +292,7 @@ impl<'a, 'b> MainState<'a, 'b> {
         lua.lock().unwrap().context(|lua_ctx| {
             // doesn't work right now because it hits the instruction limit eventually
             // targeted for a later release
-            // lua_ctx.load("update()").exec().unwrap();
+            lua_ctx.load("update()").exec().unwrap();
 
             let globals = lua_ctx.globals();
             if let Ok(true) = globals.get("ADD_SHAPES") {

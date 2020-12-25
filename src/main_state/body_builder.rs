@@ -26,6 +26,7 @@ pub struct BodyBuilder<'a> {
     pub friction: f32,
     pub color: ggez::graphics::Color,
     pub name: Option<String>,
+    pub update_fn: Option<String>,
 }
 
 impl<'a> BodyBuilder<'a> {
@@ -76,6 +77,7 @@ impl<'a> BodyBuilder<'a> {
             friction: 0.5,
             color: ggez::graphics::WHITE,
             name: None,
+            update_fn: None,
         }
     }
 
@@ -108,6 +110,10 @@ impl<'a> BodyBuilder<'a> {
 
         if let Some(n) = self.name {
             specs_handle = specs_handle.with(Name(n));
+        }
+
+        if let Some(f) = self.update_fn {
+            specs_handle = specs_handle.with(UpdateFunction(f));
         }
 
         let specs_handle = specs_handle.entity;
