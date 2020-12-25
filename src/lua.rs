@@ -141,7 +141,6 @@ impl<'a, 'b> MainState<'a, 'b> {
             });
         let update_fn: Option<String> = shape.get("update_function").ok();
 
-
         #[allow(clippy::wildcard_in_or_patterns)]
         let status = match status.to_lowercase().as_str() {
             "static" => np::object::BodyStatus::Static,

@@ -1,7 +1,7 @@
 accel_fac = 0.05
 
 function update()
-    print(FPS)
+    print("FPS: " + FPS)
 end
 
 function custom_update(obj)
