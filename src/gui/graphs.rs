@@ -207,7 +207,7 @@ create_linegraph!(
     YPosGraph,
     "Y Position",
     PointShape::Ring,
-    |rigid_body: &RigidBody| rigid_body.position().translation.y
+    |rigid_body: &RigidBody| crate::SCREEN_Y - rigid_body.position().translation.y
 );
 create_linegraph!(
     XVelGraph,
