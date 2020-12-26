@@ -105,7 +105,7 @@ impl Graph for dyn LineGraph {
             let mut transformed_points = s0
                 .iter()
                 .chain(s1.iter())
-                .map(|[x, v]| [x_offset + dbg!(*x), 5.5 - (v - midpoint) * scale_fac])
+                .map(|[x, v]| [x_offset + *x, 5.5 - (v - midpoint) * scale_fac])
                 .collect::<Vec<[f32; 2]>>();
 
             transformed_points.pop();
