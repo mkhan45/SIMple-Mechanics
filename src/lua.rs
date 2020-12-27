@@ -294,9 +294,9 @@ impl<'a, 'b> MainState<'a, 'b> {
     pub fn lua_update(&mut self) {
         let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
         lua.lock().unwrap().context(|lua_ctx| {
-            // doesn't work right now because it hits the instruction limit eventually
-            // targeted for a later release
-            lua_ctx.load("update()").exec().unwrap();
+            if let Err(e) = lua_ctx.load("update()").exec() {
+                panic!("Lua Error in update(): {}", e.to_string())
+            }
 
             let globals = lua_ctx.globals();
             if let Ok(true) = globals.get("ADD_SHAPES") {
