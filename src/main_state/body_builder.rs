@@ -26,6 +26,8 @@ pub struct BodyBuilder<'a> {
     pub friction: f32,
     pub color: ggez::graphics::Color,
     pub name: Option<String>,
+    pub update_fn: Option<String>,
+    pub collisions_enabled: bool,
 }
 
 impl<'a> BodyBuilder<'a> {
@@ -76,6 +78,8 @@ impl<'a> BodyBuilder<'a> {
             friction: 0.5,
             color: ggez::graphics::WHITE,
             name: None,
+            update_fn: None,
+            collisions_enabled: false,
         }
     }
 
@@ -95,6 +99,7 @@ impl<'a> BodyBuilder<'a> {
             .set_material(np::material::MaterialHandle::new(
                 np::material::BasicMaterial::new(self.restitution, self.friction),
             ))
+            .set_is_sensor(!self.collisions_enabled)
             .build(np::object::BodyPartHandle(body_handle, 0));
 
         let coll_handle = self.collider_set.insert(coll);
@@ -108,6 +113,10 @@ impl<'a> BodyBuilder<'a> {
 
         if let Some(n) = self.name {
             specs_handle = specs_handle.with(Name(n));
+        }
+
+        if let Some(f) = self.update_fn {
+            specs_handle = specs_handle.with(UpdateFunction(f));
         }
 
         let specs_handle = specs_handle.entity;

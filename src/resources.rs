@@ -1,17 +1,16 @@
-use crate::{Point, Vector};
-use ggez::graphics::Rect;
+use crate::types::{Point, Vector};
+use ggez::graphics::{self, Rect};
 
 #[derive(Copy, Clone)]
 pub struct MousePos(pub Vector);
-
-#[derive(Copy, Clone)]
-pub struct MouseStartPos(pub Option<Vector>);
-
 impl Default for MousePos {
     fn default() -> Self {
         MousePos(Vector::new(0.0, 0.0))
     }
 }
+
+#[derive(Copy, Clone, Default)]
+pub struct MouseStartPos(pub Option<Vector>);
 
 #[derive(Copy, Clone)]
 pub struct Resolution(pub Vector);
@@ -43,8 +42,12 @@ pub enum ShapeInfo {
     Polyline(Option<Vec<Point>>),
 }
 
+#[derive(Default)]
 pub struct CreationData(pub Option<ShapeInfo>);
+
+#[derive(Default)]
 pub struct CreateShapeCentered(pub bool);
+
 impl CreateShapeCentered {
     pub fn toggle(&mut self) {
         self.0 = !self.0;
@@ -119,5 +122,46 @@ pub struct ScaleFac(pub Vector);
 impl Default for ScaleFac {
     fn default() -> Self {
         ScaleFac(Vector::new(1.0, 1.0))
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct Camera {
+    pub pos: Vector,
+    pub scale: f32,
+}
+
+impl Camera {
+    pub fn make_drawparam(&self) -> graphics::DrawParam {
+        graphics::DrawParam::new()
+            .dest([self.pos.x, self.pos.y])
+            .scale([self.scale, self.scale])
+    }
+
+    pub fn change_scale(&mut self, delta: f32, focus: Vector) {
+        let prev_scale = self.scale;
+        let new_scale = (self.scale + delta).max(0.05);
+
+        let delta_focus = {
+            let prev_scaled_focus = focus;
+            let new_scaled_focus = focus / new_scale * prev_scale;
+            (new_scaled_focus - prev_scaled_focus) * prev_scale
+        };
+
+        self.pos += delta_focus;
+        self.scale = new_scale;
+    }
+
+    pub fn translate(&mut self, vector: Vector) {
+        self.pos += -vector * self.scale;
+    }
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        Camera {
+            pos: Vector::new(0.0, 0.0),
+            scale: 1.0,
+        }
     }
 }

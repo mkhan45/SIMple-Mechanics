@@ -28,3 +28,7 @@ pub struct Color(pub ggez::graphics::Color);
 #[derive(Debug, Clone, Component)]
 #[storage(HashMapStorage)]
 pub struct Name(pub String);
+
+#[derive(Debug, Clone, Component)]
+#[storage(HashMapStorage)]
+pub struct UpdateFunction(pub String);

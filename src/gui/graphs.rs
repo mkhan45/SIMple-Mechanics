@@ -9,7 +9,7 @@ use crate::{
     components::{self, Name},
     main_state::MainState,
     resources::{GraphMinMax, GraphPosData},
-    RigidBody,
+    types::RigidBody,
 };
 use graphics::{DrawMode, MeshBuilder, Rect, Scale, TextFragment};
 
@@ -105,7 +105,7 @@ impl Graph for dyn LineGraph {
             let mut transformed_points = s0
                 .iter()
                 .chain(s1.iter())
-                .map(|[x, v]| [x_offset + dbg!(*x), 5.5 - (v - midpoint) * scale_fac])
+                .map(|[x, v]| [x_offset + *x, 5.5 - (v - midpoint) * scale_fac])
                 .collect::<Vec<[f32; 2]>>();
 
             transformed_points.pop();
@@ -137,7 +137,7 @@ macro_rules! create_linegraph {
                 $structname {
                     data: VecDeque::with_capacity(60 * 10 / 4),
                     shown: true,
-                    max_len: 60 * 5,
+                    max_len: 60 * 10,
                 }
             }
         }
@@ -207,7 +207,7 @@ create_linegraph!(
     YPosGraph,
     "Y Position",
     PointShape::Ring,
-    |rigid_body: &RigidBody| rigid_body.position().translation.y
+    |rigid_body: &RigidBody| crate::SCREEN_Y - rigid_body.position().translation.y
 );
 create_linegraph!(
     XVelGraph,
@@ -234,7 +234,6 @@ impl<'a, 'b> MainState<'a, 'b> {
 
         let mut builder = MeshBuilder::new();
 
-        // let speed_graphs = self.world.read_storage::<SpeedGraph>();
         let colors = self.world.read_storage::<components::Color>();
         let GraphMinMax(min, max) = *self.world.fetch::<GraphMinMax>();
         let midpoint = (min + max) / 2.0;

@@ -17,6 +17,22 @@ use specs::prelude::*;
 
 use rlua::prelude::*;
 
+pub mod update_fn_sys;
+
+// TODO:
+// A way to interact with shapes that have already been instantiated,
+// also a way to set custom collision math
+//
+// This is more difficult than it seems since it's difficult to access
+// the ECS fom a Lua function.
+//
+// The solution I'm thinking of is having the user pass in a Lua function
+// which accepts a physics object as a Lua table and outputs a new Lua table
+// physics object.
+//
+// Using this pure sort of function extra Lua glue can be written so that users
+// can easily construct functions which handle integration and collision math separately.
+
 pub trait LuaResExt {
     fn run_lua_code(&mut self, code: String);
     fn run_lua_file(&self, filename: impl AsRef<std::path::Path> + std::clone::Clone);
@@ -31,13 +47,13 @@ pub fn new_lua_res() -> LuaRes {
 
     let lua = Lua::new_with(lua_stdlib);
     lua.set_memory_limit(Some(262_144));
-    lua.set_hook(
-        rlua::HookTriggers {
-            every_nth_instruction: Some(75_000),
-            ..Default::default()
-        },
-        |_, _| panic!("Lua script exceeded instruction limit"),
-    );
+    // lua.set_hook(
+    //     rlua::HookTriggers {
+    //         every_nth_instruction: Some(75_000),
+    //         ..Default::default()
+    //     },
+    //     |_, _| panic!("Lua script exceeded instruction limit"),
+    // );
 
     lua.context(|lua_ctx| {
         let globals = lua_ctx.globals();
@@ -100,7 +116,7 @@ impl<'a, 'b> MainState<'a, 'b> {
     /// must call world.maintain() after calling this for shape to actually get added
     /// in practice is only used in process_lua_shapes() so it should be fine
     pub fn process_lua_shape(&mut self, shape: &rlua::Table) {
-        let ty: String = shape.get("shape").unwrap();
+        let ty: String = shape.get("shape").expect("invalid shape");
         let mass = shape.get("mass").unwrap_or(1.0);
         let x = shape.get("x").unwrap();
         let y = shape.get("y").unwrap();
@@ -110,7 +126,7 @@ impl<'a, 'b> MainState<'a, 'b> {
         let rotation = shape.get("rotation").unwrap_or(0.0);
         let elasticity = shape.get("elasticity").unwrap_or(0.2);
         let friction = shape.get("friction").unwrap_or(0.5);
-        let name = shape.get("name");
+        let name = shape.get("name").ok();
         let status = shape
             .get("status")
             .unwrap_or_else(|_| "dynamic".to_string());
@@ -123,6 +139,11 @@ impl<'a, 'b> MainState<'a, 'b> {
                 let a = color.get("a").unwrap_or(255);
                 ggez::graphics::Color::from_rgba(r, g, b, a)
             });
+        let update_fn: Option<String> = shape.get("update_function").ok();
+        let collisions_enabled: bool = shape
+            .get("collision")
+            .map(|s: String| s.as_str() == "true")
+            .unwrap_or(true);
 
         #[allow(clippy::wildcard_in_or_patterns)]
         let status = match status.to_lowercase().as_str() {
@@ -153,7 +174,9 @@ impl<'a, 'b> MainState<'a, 'b> {
             restitution: elasticity,
             friction,
             color,
-            name: name.ok(),
+            update_fn,
+            name,
+            collisions_enabled,
             ..BodyBuilder::from_world(&self.world, shape_info, mass)
         }
         .create();
@@ -271,9 +294,9 @@ impl<'a, 'b> MainState<'a, 'b> {
     pub fn lua_update(&mut self) {
         let lua = self.world.fetch_mut::<crate::resources::LuaRes>().clone();
         lua.lock().unwrap().context(|lua_ctx| {
-            // doesn't work right now because it hits the instruction limit eventually
-            // targeted for a later release
-            // lua_ctx.load("update()").exec().unwrap();
+            if let Err(e) = lua_ctx.load("update()").exec() {
+                panic!("Lua Error in update(): {}", e.to_string())
+            }
 
             let globals = lua_ctx.globals();
             if let Ok(true) = globals.get("ADD_SHAPES") {

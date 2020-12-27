@@ -4,14 +4,11 @@ use std::convert::TryInto;
 
 use nphysics2d as np;
 
-use ggez::graphics::{self, DrawMode};
-
 use crate::{
     components::{Collider, Color, Name, PhysicsBody},
     gui::signals::UiSignal,
-    main_state::MainState,
     resources::*,
-    BodySet, ColliderSet, MechanicalWorld, RigidBody, Vector,
+    types::*,
 };
 
 use nphysics2d::material::BasicMaterial;
@@ -74,18 +71,6 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
                 ui,
                 signals
             );
-            // signal_button!(
-            //     "Polygon",
-            //     UiSignal::AddShape(ShapeInfo::Polygon(Some(Vec::with_capacity(3)))),
-            //     ui,
-            //     signals
-            // );
-            // signal_button!(
-            //     "Line",
-            //     UiSignal::AddShape(ShapeInfo::Polyline(Some(Vec::with_capacity(30)))),
-            //     ui,
-            //     signals
-            // );
         });
 
         ui.separator();
@@ -99,7 +84,7 @@ pub fn make_menu_bar(ui: &mut imgui::Ui, signals: &mut Vec<UiSignal>, world: &mu
                 .speed(0.01)
                 .build();
 
-            let prev_grav = mechanical_world.gravity.y.clone();
+            let prev_grav = mechanical_world.gravity.y;
             ui.drag_float(im_str!("Gravity"), &mut mechanical_world.gravity.y)
                 .speed(0.1)
                 .build();
@@ -319,83 +304,4 @@ pub fn make_default_ui(ui: &mut imgui::Ui) {
                 println!("Small button clicked");
             }
         });
-}
-
-impl<'a, 'b> MainState<'a, 'b> {
-    pub fn draw_creation_gui(&self, mesh_builder: &mut ggez::graphics::MeshBuilder) {
-        let create_shape_opt = self.world.fetch::<CreationData>();
-        let create_shape_data = create_shape_opt.0.as_ref();
-        let create_shape_centered = self.world.fetch::<CreateShapeCentered>().0;
-
-        if let (Some(create_shape_data), Some(start_pos)) =
-            (&create_shape_data, self.world.fetch::<MouseStartPos>().0)
-        {
-            let mouse_pos = self.world.fetch::<MousePos>().0;
-            let mouse_drag_vec = mouse_pos - start_pos;
-            match (create_shape_data, create_shape_centered) {
-                (ShapeInfo::Rectangle(_), true) => {
-                    let v = mouse_drag_vec.abs();
-                    mesh_builder.rectangle(
-                        graphics::DrawMode::stroke(0.1),
-                        graphics::Rect::new(
-                            start_pos.x - v.x,
-                            start_pos.y - v.y,
-                            v.x * 2.0,
-                            v.y * 2.0,
-                        ),
-                        graphics::WHITE,
-                    );
-                }
-                (ShapeInfo::Rectangle(_), false) => {
-                    let (start_pos, extents) = if mouse_drag_vec.y > 0.0 {
-                        (start_pos, mouse_drag_vec)
-                    } else {
-                        (start_pos + mouse_drag_vec, -mouse_drag_vec)
-                    };
-
-                    mesh_builder.rectangle(
-                        graphics::DrawMode::stroke(0.1),
-                        graphics::Rect::new(start_pos.x, start_pos.y, extents.x, extents.y),
-                        graphics::WHITE,
-                    );
-                }
-                (ShapeInfo::Circle(_), true) => {
-                    let r = mouse_drag_vec.magnitude();
-                    mesh_builder.circle(
-                        DrawMode::stroke(0.1),
-                        [start_pos.x, start_pos.y],
-                        r,
-                        0.01,
-                        graphics::WHITE,
-                    );
-                }
-                (ShapeInfo::Circle(_), false) => {
-                    let r = mouse_drag_vec.magnitude() / 2.0;
-                    mesh_builder.circle(
-                        DrawMode::stroke(0.1),
-                        [
-                            start_pos.x + mouse_drag_vec.x / 2.0,
-                            start_pos.y + mouse_drag_vec.y / 2.0,
-                        ],
-                        r,
-                        0.01,
-                        graphics::WHITE,
-                    );
-                }
-                _ => {}
-            }
-        }
-
-        if let Some(ShapeInfo::Polygon(Some(points))) = &create_shape_data {
-            let _ = mesh_builder.line(
-                points
-                    .iter()
-                    .map(|p| [p.x, p.y])
-                    .collect::<Vec<[f32; 2]>>()
-                    .as_slice(),
-                0.1,
-                graphics::WHITE,
-            );
-        }
-    }
 }

@@ -38,3 +38,6 @@ add_shapes(
 )
 
 GRAVITY = 0
+
+function update()
+end
