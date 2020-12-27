@@ -175,7 +175,7 @@ impl<'a, 'b> MainState<'a, 'b> {
             friction,
             color,
             update_fn,
-            name: name,
+            name,
             collisions_enabled,
             ..BodyBuilder::from_world(&self.world, shape_info, mass)
         }

@@ -1,12 +1,9 @@
 function collide_fn(c1, c2)
     -- 2D elastic collision between equal mass objects
-
     local v1 = Vector:create(c1.x_vel, c1.y_vel)
     local v2 = Vector:create(c2.x_vel, c2.y_vel)
     local relative_vel = v1 - v2
     local inv_relative_vel = v2 - v1
-
-    print(a.c)
 
     local p1 = Vector:create(c1.x, c1.y)
     local p2 = Vector:create(c2.x, c2.y)

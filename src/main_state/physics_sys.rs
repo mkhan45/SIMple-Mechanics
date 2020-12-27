@@ -1,9 +1,7 @@
 use specs::prelude::*;
 
 use crate::resources::{FrameSteps, Paused, Timestep};
-use crate::{
-    BodySet, ColliderSet, ForceGeneratorSet, GeometricalWorld, JointConstraintSet, MechanicalWorld,
-};
+use crate::types::*;
 
 pub struct PhysicsSys;
 

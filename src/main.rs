@@ -4,43 +4,22 @@ use specs::prelude::*;
 mod main_state;
 use main_state::MainState;
 
-mod resources;
-
-mod lua;
-
 mod gui;
-
-use ncollide2d as nc;
-use nphysics2d as np;
+mod lua;
+mod resources;
 
 mod components;
 use components::*;
 
+mod types;
+use types::*;
+
 use lua::update_fn_sys::LuaUpdateFnSys;
 
-use gui::{
-    graphs::{RotGraph, RotVelGraph, SpeedGraph, XPosGraph, XVelGraph, YPosGraph, YVelGraph},
-    gui_systems::*,
-    imgui_wrapper::ImGuiWrapper,
-};
+use gui::{imgui_wrapper::ImGuiWrapper, systems::*};
 use resources::HiDPIFactor;
 
 use main_state::physics_sys::PhysicsSys;
-
-type Vector = nalgebra::Vector2<f32>;
-type Point = nalgebra::Point2<f32>;
-
-type MechanicalWorld = np::world::DefaultMechanicalWorld<f32>;
-type BodySet = np::object::DefaultBodySet<f32>;
-type GeometricalWorld = np::world::DefaultGeometricalWorld<f32>;
-type ColliderSet = np::object::DefaultColliderSet<f32>;
-type JointConstraintSet = np::joint::DefaultJointConstraintSet<f32>;
-type ForceGeneratorSet = np::force_generator::DefaultForceGeneratorSet<f32>;
-
-type ShapeHandle = nc::shape::ShapeHandle<f32>;
-type ColliderHandle = np::object::DefaultColliderHandle;
-type RigidBody = np::object::RigidBody<f32>;
-type RigidBodyDesc = np::object::RigidBodyDesc<f32>;
 
 const SCREEN_X: f32 = 20.0;
 const SCREEN_Y: f32 = 20.0;
@@ -79,7 +58,6 @@ fn main() -> ggez::GameResult {
     world.insert(force_gens);
 
     // setting up defaults
-
     world.insert(resources::SaveSceneFilename("lua/scene.lua".to_string()));
     world.insert(resources::SaveGraphFilename("graphs.csv".to_string()));
 
@@ -136,18 +114,8 @@ fn main() -> ggez::GameResult {
 
     // many components aren't used in proper specs systems, so just
     // register them all manually.
-    world.register::<PhysicsBody>();
     world.register::<Collider>();
     world.register::<InfoDisplayed>();
-    world.register::<Color>();
-    world.register::<Name>();
-    world.register::<SpeedGraph>();
-    world.register::<RotVelGraph>();
-    world.register::<XVelGraph>();
-    world.register::<YVelGraph>();
-    world.register::<XPosGraph>();
-    world.register::<YPosGraph>();
-    world.register::<RotGraph>();
 
     // The specs dispatcher takes a bunch of systems and tries to
     // run them in parallel. dispatcher.dispatch() is run every frame

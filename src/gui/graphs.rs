@@ -9,7 +9,7 @@ use crate::{
     components::{self, Name},
     main_state::MainState,
     resources::{GraphMinMax, GraphPosData},
-    RigidBody,
+    types::RigidBody,
 };
 use graphics::{DrawMode, MeshBuilder, Rect, Scale, TextFragment};
 

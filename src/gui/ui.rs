@@ -8,7 +8,7 @@ use crate::{
     components::{Collider, Color, Name, PhysicsBody},
     gui::signals::UiSignal,
     resources::*,
-    BodySet, ColliderSet, MechanicalWorld, RigidBody, Vector,
+    types::*,
 };
 
 use nphysics2d::material::BasicMaterial;

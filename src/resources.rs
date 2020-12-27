@@ -1,4 +1,4 @@
-use crate::{Point, Vector};
+use crate::types::{Point, Vector};
 use ggez::graphics::{self, Rect};
 
 #[derive(Copy, Clone)]
