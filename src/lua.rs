@@ -116,7 +116,7 @@ impl<'a, 'b> MainState<'a, 'b> {
     /// must call world.maintain() after calling this for shape to actually get added
     /// in practice is only used in process_lua_shapes() so it should be fine
     pub fn process_lua_shape(&mut self, shape: &rlua::Table) {
-        let ty: String = shape.get("shape").unwrap();
+        let ty: String = shape.get("shape").expect("invalid shape");
         let mass = shape.get("mass").unwrap_or(1.0);
         let x = shape.get("x").unwrap();
         let y = shape.get("y").unwrap();
@@ -126,7 +126,7 @@ impl<'a, 'b> MainState<'a, 'b> {
         let rotation = shape.get("rotation").unwrap_or(0.0);
         let elasticity = shape.get("elasticity").unwrap_or(0.2);
         let friction = shape.get("friction").unwrap_or(0.5);
-        let name = shape.get("name");
+        let name = shape.get("name").ok();
         let status = shape
             .get("status")
             .unwrap_or_else(|_| "dynamic".to_string());
@@ -140,6 +140,10 @@ impl<'a, 'b> MainState<'a, 'b> {
                 ggez::graphics::Color::from_rgba(r, g, b, a)
             });
         let update_fn: Option<String> = shape.get("update_function").ok();
+        let collisions_enabled: bool = shape
+            .get("collision")
+            .map(|s: String| s.as_str() == "true")
+            .unwrap_or(true);
 
         #[allow(clippy::wildcard_in_or_patterns)]
         let status = match status.to_lowercase().as_str() {
@@ -171,7 +175,8 @@ impl<'a, 'b> MainState<'a, 'b> {
             friction,
             color,
             update_fn,
-            name: name.ok(),
+            name: name,
+            collisions_enabled,
             ..BodyBuilder::from_world(&self.world, shape_info, mass)
         }
         .create();
