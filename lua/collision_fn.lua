@@ -1,3 +1,4 @@
+-- this function is called on the circles when they collide
 function collide_fn(c1, c2)
     -- 2D elastic collision between equal mass objects
     local v1 = Vector:create(c1.x_vel, c1.y_vel)
@@ -11,8 +12,10 @@ function collide_fn(c1, c2)
     local inv_radius = p2 - p1
     local radius_mag = radius:magnitude()
 
-    local v1_final = v1 - (relative_vel:dot(radius) / (radius_mag * radius_mag) * radius)
-    local v2_final = v2 - (inv_relative_vel:dot(inv_radius) / (radius_mag * radius_mag) * inv_radius)
+    local v1_final =
+        v1 - (relative_vel:dot(radius) / (radius_mag * radius_mag) * radius)
+    local v2_final =
+        v2 - (inv_relative_vel:dot(inv_radius) / (radius_mag * radius_mag) * inv_radius)
 
     c1.x_vel, c1.y_vel = v1_final.x, v1_final.y
     c2.x_vel, c2.y_vel = v2_final.x, v2_final.y
@@ -20,6 +23,7 @@ end
 
 GRAVITY = 0
 
+-- defining a Vector class
 Vector = {x = 0, y = 0}
 Vector.__index = Vector
 
@@ -51,12 +55,10 @@ end
 function Vector:__add(v)
     return Vector:create(self.x + v.x, self.y + v.y)
 end
--- Vector.mt.__add = Vector.add
 
 function Vector:__sub(v)
     return Vector:create(self.x - v.x, self.y - v.y)
 end
--- Vector.mt.__sub = Vector.sub
 
 function Vector:__mul(f)
     if (type(self) == "table") then
@@ -65,34 +67,36 @@ function Vector:__mul(f)
         return Vector:create(f.x * self, f.y * self)
     end
 end
--- Vector.mt.__mul = Vector.mul
 
 function Vector:__div(f)
     return self * (1 / f)
 end
--- Vector.mt.__div = Vector.div
+----
 
+-- checks if the circles are colliding
 local function circle_collide(p1, r1, p2, r2)
     return p1:dist(p2) <= r1 + r2
 end
 
+-- defining the circle variables which will be used to reflect the
+-- simulation data
 local circ1 = {shape="circle", x = SCREEN_X / 6, y = SCREEN_Y / 2, r = 1, mass = 1, x_vel = 2,
-               update_function="circle_update", collision = "false", name="circ1"}
+update_function="circle_update", collision = "false", name="circ1"}
 
 local circ2 = {shape="circle", x = SCREEN_X * 5 / 6, y = SCREEN_Y / 2, r = 1, mass = 1, x_vel = -2.5,
-               update_function="circle_update", collision = "false", name="circ2"}
+update_function="circle_update", collision = "false", name="circ2"}
 
+-- if the Lua circles are changed, update the physics sim to reflect them
+-- otherwise, update the Lua circles to reflect the physics sim
 function circle_update(obj)
     if (obj.name == "circ1") then
         if (circ1.changed) then
-            -- obj.x_vel, obj.y_vel = circ1.x_vel, circ1.y_vel
             obj = circ1
             circ1.changed = false
         end
         circ1 = obj
     elseif (obj.name == "circ2") then
         if (circ2.changed) then
-            -- obj.x_vel, obj.y_vel = circ2.x_vel, circ2.y_vel
             obj = circ2
             circ2.changed = false
         end
@@ -102,6 +106,8 @@ function circle_update(obj)
     return obj
 end
 
+-- every frame, check if the circles are colliding and call
+-- the collide_fn if they collide
 function update()
     local p1 = Vector:create(circ1.x, circ1.y)
     local p2 = Vector:create(circ2.x, circ2.y)
@@ -117,4 +123,5 @@ function update()
     end
 end
 
+-- add the shapes to the scene
 add_shapes(circ1, circ2)
