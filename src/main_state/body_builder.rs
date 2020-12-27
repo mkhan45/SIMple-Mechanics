@@ -79,7 +79,7 @@ impl<'a> BodyBuilder<'a> {
             color: ggez::graphics::WHITE,
             name: None,
             update_fn: None,
-            collisions_enabled: false,
+            collisions_enabled: true,
         }
     }
 
