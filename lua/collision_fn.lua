@@ -1,3 +1,7 @@
+function collide_fn(c1, c2)
+    c1.x_vel, c2.x_vel = c2.x_vel, c1.x_vel
+end
+
 GRAVITY = 0
 
 Vector = {x = 0, y = 0}
@@ -35,7 +39,7 @@ end
 local circ1 = {shape="circle", x = SCREEN_X / 6, y = SCREEN_Y / 2, r = 1, mass = 1, x_vel = 2,
                update_function="circle_update", collision = "false", name="left"}
 
-local circ2 = {shape="circle", x = SCREEN_X * 5 / 6, y = SCREEN_Y / 2, r = 1, mass = 1, x_vel = -2,
+local circ2 = {shape="circle", x = SCREEN_X * 5 / 6, y = SCREEN_Y / 2, r = 1, mass = 1, x_vel = -2.5,
                update_function="circle_update", collision = "false", name="right"}
 
 function circle_update(obj)
@@ -48,10 +52,6 @@ function circle_update(obj)
     end
 
     return obj
-end
-
-local function collide_fn(c1, c2)
-    c1.x_vel, c2.x_vel = c2.x_vel, c1.x_vel
 end
 
 function update()
