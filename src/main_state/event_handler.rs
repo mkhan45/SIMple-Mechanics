@@ -7,6 +7,7 @@ use nphysics2d as np;
 use crate::gui::draw_creation_gui_sys::DrawCreationGUISys;
 
 use draw_shape_sys::DrawShapesSys;
+use microprofile::scope;
 
 use crate::resources::{
     self, Camera, CreateElasticity, CreateFriction, CreateMass, CreateShapeCentered,
@@ -26,6 +27,8 @@ use ggez::{
 impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         {
+            microprofile::flip();
+
             self.world.insert(resources::DT(ggez::timer::delta(ctx)));
             self.world.insert(resources::FPS(ggez::timer::fps(ctx)));
 
@@ -44,6 +47,7 @@ impl<'a, 'b> EventHandler for MainState<'a, 'b> {
     }
 
     fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        microprofile::scope!("draw", "draw");
         graphics::clear(ctx, graphics::BLACK);
 
         // the mesh builder batches all of the objects into a single mesh,

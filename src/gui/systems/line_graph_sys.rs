@@ -8,6 +8,8 @@ use crate::components::PhysicsBody;
 use crate::resources::Paused;
 use crate::{BodySet, RigidBody};
 
+use microprofile::scope;
+
 #[derive(Default)]
 pub struct LineGraphSys<T>
 where
@@ -28,6 +30,7 @@ where
     );
 
     fn run(&mut self, (mut graphs, physics_bodies, paused, body_set): Self::SystemData) {
+        microprofile::scope!("graphs", "line_graph");
         if paused.0 {
             return;
         }

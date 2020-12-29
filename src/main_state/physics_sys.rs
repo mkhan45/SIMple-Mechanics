@@ -3,6 +3,8 @@ use specs::prelude::*;
 use crate::resources::{FrameSteps, Paused, Timestep};
 use crate::types::*;
 
+use microprofile::scope;
+
 pub struct PhysicsSys;
 
 impl<'a> System<'a> for PhysicsSys {
@@ -33,6 +35,7 @@ impl<'a> System<'a> for PhysicsSys {
             frame_steps,
         ): Self::SystemData,
     ) {
+        microprofile::scope!("nphysics", "physics step");
         // not running the physics step at all when paused causes some weird behavior,
         // so just run it with a timestep of 0
         if paused.0 {

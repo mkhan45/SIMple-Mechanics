@@ -25,5 +25,7 @@ imgui-gfx-renderer = "0.2.0"
 
 csv = "1.1.3"
 
+microprofile = "0.2.1"
+
 [profile.dev.package."*"]
 opt-level = 3

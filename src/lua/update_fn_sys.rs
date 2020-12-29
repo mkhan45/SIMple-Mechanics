@@ -5,6 +5,8 @@ use crate::components::{Color, Name, PhysicsBody, UpdateFunction};
 use crate::resources::{LuaRes, Paused};
 use crate::{BodySet, RigidBody, Vector};
 
+use microprofile::scope;
+
 use nphysics2d as np;
 
 pub struct LuaUpdateFnSys;
@@ -75,6 +77,7 @@ impl<'a> System<'a> for LuaUpdateFnSys {
 }
 
 fn table_from_color<'a>(color: &Color, lua_ctx: &LuaContext<'a>) -> LuaTable<'a> {
+    microprofile::scope!("lua", "Lua serialize color table");
     let r = color.0.r * 255.0;
     let g = color.0.g * 255.0;
     let b = color.0.b * 255.0;
@@ -88,12 +91,14 @@ fn table_from_color<'a>(color: &Color, lua_ctx: &LuaContext<'a>) -> LuaTable<'a>
 }
 
 fn update_color_from_table<'a>(color: &mut Color, table: &LuaTable<'a>) {
+    microprofile::scope!("lua", "Deserialize color table from Lua");
     color.0.r = table.get::<_, f32>("r").unwrap() / 255.0;
     color.0.g = table.get::<_, f32>("g").unwrap() / 255.0;
     color.0.b = table.get::<_, f32>("b").unwrap() / 255.0;
 }
 
 fn table_from_rigid_body<'a>(rigid_body: &RigidBody, lua_ctx: &LuaContext<'a>) -> LuaTable<'a> {
+    microprofile::scope!("lua", "Lua serialize body table");
     let (pos, rot) = {
         let isometry = rigid_body.position();
         (isometry.translation, isometry.rotation.angle())
@@ -112,6 +117,7 @@ fn table_from_rigid_body<'a>(rigid_body: &RigidBody, lua_ctx: &LuaContext<'a>) -
 }
 
 fn update_rigid_body_from_table<'a>(rigid_body: &mut RigidBody, table: &LuaTable<'a>) {
+    microprofile::scope!("lua", "Deserialize rigid body table from Lua");
     let new_pos = {
         let new_x: f32 = table.get("x").unwrap();
         let new_y: f32 = table.get("y").unwrap();
