@@ -1,7 +1,5 @@
 -- since Lua can't access keypresses this will be AI driven
 
-DT = 1 / FPS
-
 PIPE_WIDTH = 1.5
 PIPE_SPEED = 15
 PIPE_COLOR = {r = 0, g = 255, b = 0}
