@@ -44,6 +44,7 @@ You can also find sample labs and tutorials at [https://mkhan45.github.io/SIMple
 ![](demo1.gif)
 ![](demo2.gif)
 ![](demo3.gif)
+![](flappy.gif)
 
 ## Lua Scripting
 
