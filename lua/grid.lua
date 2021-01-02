@@ -1,23 +1,36 @@
-width = 7
-height = 7
+WIDTH = 7
+HEIGHT = 7
 
-rad = 1
-offset = 2.25
+RAD = 1
+OFFSET = 2.25
 
-total_width = offset * (width + 1)
-start_x_offset =  SCREEN_X / 2 - total_width / 2
+TOTAL_WIDTH = OFFSET * (WIDTH + 1)
+START_X_OFFSET =  SCREEN_X / 2 - TOTAL_WIDTH / 2
 
-for row = 1,height do
-    for col = 1,width do
+for row = 1,HEIGHT do
+    for col = 1,WIDTH do
         color = {
-            r = (row * col) / (width * height) * 255,
-            g = col / width * 255,
-            b = row / height * 255
+            r = (row * col) / (WIDTH * HEIGHT) * 255,
+            g = col / WIDTH * 255,
+            b = row / HEIGHT * 255
         }
-        add_shape(
-            {shape = "circle", x = col * offset + start_x_offset, y = row * offset, r = rad, mass = 1, color = color}
-        )
+        add_shape{
+            shape = "circle",
+            x = col * OFFSET + START_X_OFFSET,
+            y = row * OFFSET,
+            r = RAD,
+            mass = 1,
+            color = color
+        }
     end
 end
 
-add_shape({shape = "rect", status = "static", x = 0, y = SCREEN_Y, w = SCREEN_X, h = 0.25})
+-- floor
+add_shape{
+    shape = "rect",
+    status = "static",
+    x = 0,
+    y = SCREEN_Y,
+    w = SCREEN_X,
+    h = 0.25
+}

@@ -15,7 +15,13 @@ function update_fn(obj)
     return obj
 end
 
-add_shape{shape="circle", x=SCREEN_X/2, y=SCREEN_Y/2, r=1, mass=1,
-update_function="update_fn"}
+add_shape {
+    shape="circle",
+    x=SCREEN_X/2,
+    y=SCREEN_Y/2,
+    r=1,
+    mass=1,
+    update_function="update_fn"
+}
 
 GRAVITY = 0
