@@ -112,6 +112,7 @@ fn table_from_rigid_body<'a>(rigid_body: &RigidBody, lua_ctx: &LuaContext<'a>) -
     obj_table.set("x_vel", vel.x).unwrap();
     obj_table.set("y_vel", vel.y).unwrap();
     obj_table.set("y_vel", vel.y).unwrap();
+    obj_table.set("mass", rigid_body.augmented_mass().mass()).unwrap();
 
     obj_table
 }

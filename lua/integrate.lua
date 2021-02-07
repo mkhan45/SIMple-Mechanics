@@ -10,7 +10,7 @@ Y_VEL = -1
 
 function update_fn(obj)
     local old_x, old_y = obj.x, obj.y
-    data = integrate(old_x, old_y, X_VEL, Y_VEL, DT / 100)
+    local data = integrate(old_x, old_y, X_VEL, Y_VEL, DT / 100)
     obj.x, obj.y = data.new_x, data.new_y
     return obj
 end

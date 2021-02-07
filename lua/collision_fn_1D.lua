@@ -1,16 +1,15 @@
 -- this function is called on the circles when they collide
-function collide_fn(p1, p2, v1, v2)
-    -- 2D elastic collision between equal mass objects
-    local relative_vel = v1 - v2
-    local inv_relative_vel = v2 - v1
+function collide_fn(c1, c2)
+    -- 1D elastic collision
+    local m1 = c1.mass
+    local m2 = c2.mass
 
-    local radius = p1 - p2
-    local inv_radius = p2 - p1
-    local radius_mag = radius:magnitude()
+    local v1 = c1.x_vel
+    local v2 = c2.x_vel
 
     return {
-        v1 = v1 - (relative_vel:dot(radius) / (radius_mag * radius_mag) * radius),
-        v2 = v2 - (inv_relative_vel:dot(inv_radius) / (radius_mag * radius_mag) * inv_radius)
+        v1_f = (m1 - m2) / (m1 + m2) * v1 + 2 * m2 / (m1 + m2) * v2,
+        v2_f = (m2 - m1) / (m1 + m2) * v2 + 2 * m1 / (m1 + m2) * v1
     }
 end
 
@@ -96,6 +95,8 @@ function circle_update(obj)
         circ2 = obj
     end
 
+    obj.y_vel = 0
+
     return obj
 end
 
@@ -111,13 +112,9 @@ function update()
         local cos_angle = relative_vel:cos_angle(radius)
         if (cos_angle < 0) then
             circ1.changed, circ2.changed = true, true
-            local v1 = Vector:create(circ1.x_vel, circ1.y_vel)
-            local v2 = Vector:create(circ2.x_vel, circ2.y_vel)
-            local collision_result = collide_fn(p1, p2, v1, v2)
-            circ1.x_vel = collision_result.v1.x
-            circ1.y_vel = collision_result.v1.y
-            circ2.x_vel = collision_result.v2.x
-            circ2.y_vel = collision_result.v2.y
+            local collision_res = collide_fn(circ1, circ2)
+            circ1.x_vel = collision_res.v1_f
+            circ2.x_vel = collision_res.v2_f
         end
     end
 end

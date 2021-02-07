@@ -1,7 +1,7 @@
 OFFSET = math.sin(math.pi / 4) * 1.5
 
 add_shapes(
-    {shape = "rect", status = "static", x = SCREEN_X / 8, y = SCREEN_Y / 6, 
+    {shape = "rect", status = "static", x = SCREEN_X / 8, y = SCREEN_Y / 6,
      w = 3, h = 0.25, rotation = -math.pi / 4, mass = 1, elasticity = 1, friction = 0},
 
     {shape = "rect", status = "static", x = SCREEN_X / 8, y = 5 * SCREEN_Y / 6,

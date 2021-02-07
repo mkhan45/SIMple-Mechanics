@@ -54,6 +54,10 @@ function bird_update(obj)
     return obj
 end
 
+-- We only want the gap to change position every other
+-- time a pipe passes through the left of the screen.
+-- For some reason, which pipe passes through first
+-- is seemingly random so we can't just detect that.
 GAP_RESET = false
 function pipe_update(obj)
     if obj.x + PIPE_WIDTH < 0 then
