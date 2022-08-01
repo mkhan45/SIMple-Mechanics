@@ -1,9 +1,14 @@
-use rapier2d::{na::{Vector2, Isometry2}, prelude::*};
+use rapier2d::{
+    na::{Isometry2, Vector2},
+    prelude::*,
+};
+
+use bevy_ecs::prelude::*;
 
 pub struct PhysicsRes {
     pub gravity: Vector2<f32>,
-    pub rigid_bodies: RigidBodySet,
-    pub colliders: ColliderSet,
+    pub rigid_body_set: RigidBodySet,
+    pub collider_set: ColliderSet,
     pub integration_parameters: IntegrationParameters,
     pub physics_pipeline: PhysicsPipeline,
     pub island_manager: IslandManager,
@@ -17,6 +22,27 @@ pub struct PhysicsRes {
     pub scale_factor: f32,
 }
 
+impl Default for PhysicsRes {
+    fn default() -> Self {
+        PhysicsRes {
+            gravity: Vector2::new(0.0, 9.8),
+            rigid_body_set: RigidBodySet::new(),
+            collider_set: ColliderSet::new(),
+            integration_parameters: IntegrationParameters::default(),
+            physics_pipeline: PhysicsPipeline::default(),
+            island_manager: IslandManager::default(),
+            broad_phase: BroadPhase::default(),
+            narrow_phase: NarrowPhase::default(),
+            impulse_joint_set: ImpulseJointSet::new(),
+            multibody_joint_set: MultibodyJointSet::new(),
+            ccd_solver: CCDSolver::new(),
+            physics_hooks: (),
+            event_handler: (),
+            scale_factor: 0.1,
+        }
+    }
+}
+
 impl PhysicsRes {
     pub fn step(&mut self) {
         self.physics_pipeline.step(
@@ -25,8 +51,8 @@ impl PhysicsRes {
             &mut self.island_manager,
             &mut self.broad_phase,
             &mut self.narrow_phase,
-            &mut self.rigid_bodies,
-            &mut self.colliders,
+            &mut self.rigid_body_set,
+            &mut self.collider_set,
             &mut self.impulse_joint_set,
             &mut self.multibody_joint_set,
             &mut self.ccd_solver,
@@ -34,6 +60,10 @@ impl PhysicsRes {
             &self.event_handler,
         );
     }
+}
+
+pub fn physics_step_sys(mut physics_res: ResMut<PhysicsRes>) {
+    physics_res.step();
 }
 
 enum Shape {
@@ -88,8 +118,12 @@ impl BodyBuilder {
             .mass(self.mass)
             .build();
 
-        let body_handle = physics_state.rigid_bodies.insert(rigid_body);
-        physics_state.colliders.insert_with_parent(collider, body_handle, &mut physics_state.rigid_bodies);
+        let body_handle = physics_state.rigid_body_set.insert(rigid_body);
+        physics_state.collider_set.insert_with_parent(
+            collider,
+            body_handle,
+            &mut physics_state.rigid_body_set,
+        );
 
         body_handle
     }
