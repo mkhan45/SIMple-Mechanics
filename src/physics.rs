@@ -66,31 +66,31 @@ pub fn physics_step_sys(mut physics_res: ResMut<PhysicsRes>) {
     physics_res.step();
 }
 
-enum Shape {
+pub enum Shape {
     Rectangle(f32, f32),
     Circle(f32),
 }
 
 pub struct BodyBuilder {
-    shape: Shape,
-    typ: RigidBodyType,
-    position: Vector2<f32>,
-    velocity: Vector2<f32>,
-    angular_velocity: f32,
-    mass: f32,
-    friction: f32,
-    restitution: f32,
+    pub shape: Shape,
+    pub typ: RigidBodyType,
+    pub position: Vector2<f32>,
+    pub velocity: Vector2<f32>,
+    pub angular_velocity: f32,
+    pub mass: f32,
+    pub friction: f32,
+    pub restitution: f32,
 }
 
 impl Default for BodyBuilder {
     fn default() -> Self {
         Self {
-            shape: Shape::Circle(1.0),
+            shape: Shape::Circle(10.0),
             typ: RigidBodyType::Dynamic,
             position: Default::default(),
             velocity: Default::default(),
             angular_velocity: Default::default(),
-            mass: Default::default(),
+            mass: 1.0,
             friction: Default::default(),
             restitution: Default::default(),
         }
@@ -98,7 +98,7 @@ impl Default for BodyBuilder {
 }
 
 impl BodyBuilder {
-    fn build(self, physics_state: &mut PhysicsRes) -> RigidBodyHandle {
+    pub fn build(self, physics_state: &mut PhysicsRes) -> RigidBodyHandle {
         let sf = physics_state.scale_factor;
 
         let rigid_body = RigidBodyBuilder::new(self.typ)
@@ -126,5 +126,31 @@ impl BodyBuilder {
         );
 
         body_handle
+    }
+
+    pub fn add_to_world(self, world: &mut World) {
+        let rb = self.build(&mut world.get_resource_mut().unwrap());
+
+        let id = world.spawn().insert(rb).id();
+
+        world
+            .get_resource_mut::<PhysicsRes>()
+            .unwrap()
+            .rigid_body_set
+            .get_mut(rb)
+            .unwrap()
+            .user_data = unsafe { std::mem::transmute_copy(&id) };
+    }
+
+    pub fn add_to_world_with_commands(
+        self,
+        mut commands: Commands,
+        mut physics_state: ResMut<PhysicsRes>,
+    ) {
+        let rb = self.build(&mut physics_state);
+        let id = commands.spawn().insert(rb).id();
+
+        physics_state.rigid_body_set.get_mut(rb).unwrap().user_data =
+            unsafe { std::mem::transmute_copy(&id) };
     }
 }
