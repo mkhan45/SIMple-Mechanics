@@ -1,10 +1,14 @@
 use bevy_ecs::prelude::*;
 use egui_macroquad::macroquad::prelude::*;
-use rapier2d::{na::Vector2, prelude::{RigidBodyType, TypedShape}, parry::shape::Cuboid};
+use rapier2d::{
+    na::Vector2,
+    parry::shape::Cuboid,
+    prelude::{RigidBodyType, TypedShape},
+};
 
 use crate::{
-    physics::{physics_step_sys, PhysicsRes, Shape},
     draw::draw_sys,
+    physics::{physics_step_sys, PhysicsRes, Shape},
 };
 
 pub struct MainState {
@@ -18,6 +22,7 @@ impl Default for MainState {
         let world = {
             let mut world = World::new();
             world.insert_resource(PhysicsRes::default());
+            world.insert_resource(crate::ui::body_creation::CreationState::Unstarted);
 
             crate::physics::BodyBuilder {
                 position: Vector2::new(screen_width() / 2.0, 1.0),
@@ -41,8 +46,12 @@ impl Default for MainState {
         let physics_schedule = {
             let mut main_physics_schedule = Schedule::default();
 
-            main_physics_schedule
-                .add_stage("physics", SystemStage::single(physics_step_sys.system()));
+            main_physics_schedule.add_stage(
+                "physics",
+                SystemStage::single_threaded()
+                    .with_system(physics_step_sys.system())
+                    .with_system(crate::ui::body_creation::create_body_sys.system()),
+            );
 
             main_physics_schedule
         };
@@ -50,8 +59,12 @@ impl Default for MainState {
         let draw_schedule = {
             let mut draw_schedule = Schedule::default();
 
-            draw_schedule
-                .add_stage("draw", SystemStage::single(draw_sys.system()));
+            draw_schedule.add_stage(
+                "draw",
+                SystemStage::single_threaded()
+                    .with_system(draw_sys.system())
+                    .with_system(crate::ui::body_creation::draw_creation_sys.system()),
+            );
 
             draw_schedule
         };

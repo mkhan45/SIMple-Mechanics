@@ -66,6 +66,7 @@ pub fn physics_step_sys(mut physics_res: ResMut<PhysicsRes>) {
     physics_res.step();
 }
 
+#[derive(PartialEq, Debug)]
 pub enum Shape {
     Rectangle(f32, f32),
     Circle(f32),

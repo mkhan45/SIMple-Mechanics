@@ -1,9 +1,10 @@
 use egui_macroquad::macroquad;
 use macroquad::prelude::*;
 
+pub mod draw;
 pub mod main_state;
 pub mod physics;
-pub mod draw;
+pub mod ui;
 
 #[macroquad::main("Mechanics")]
 async fn main() {
