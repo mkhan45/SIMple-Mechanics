@@ -124,6 +124,10 @@ function getImports() {
         const ret = typeof(getObject(arg0)) === 'string';
         return ret;
     };
+    imports.wbg.__wbg_static_accessor_NODE_MODULE_26b231378c1be7dd = function() {
+        const ret = module;
+        return addHeapObject(ret);
+    };
     imports.wbg.__wbg_require_0db1598d9ccecb30 = function() { return handleError(function (arg0, arg1, arg2) {
         const ret = getObject(arg0).require(getStringFromWasm0(arg1, arg2));
         return addHeapObject(ret);
@@ -134,10 +138,6 @@ function getImports() {
     };
     imports.wbg.__wbg_msCrypto_5a86d77a66230f81 = function(arg0) {
         const ret = getObject(arg0).msCrypto;
-        return addHeapObject(ret);
-    };
-    imports.wbg.__wbg_static_accessor_NODE_MODULE_26b231378c1be7dd = function() {
-        const ret = module;
         return addHeapObject(ret);
     };
     imports.wbg.__wbg_newnoargs_971e9a5abe185139 = function(arg0, arg1) {

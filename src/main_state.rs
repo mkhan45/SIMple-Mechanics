@@ -1,9 +1,9 @@
 use bevy_ecs::prelude::*;
 use egui_macroquad::macroquad::prelude::*;
-use rapier2d::na::Vector2;
+use rapier2d::{na::Vector2, prelude::{RigidBodyType, TypedShape}, parry::shape::Cuboid};
 
 use crate::{
-    physics::{physics_step_sys, PhysicsRes},
+    physics::{physics_step_sys, PhysicsRes, Shape},
     draw::draw_sys,
 };
 
@@ -21,6 +21,16 @@ impl Default for MainState {
 
             crate::physics::BodyBuilder {
                 position: Vector2::new(screen_width() / 2.0, 1.0),
+                restitution: 0.7,
+                ..Default::default()
+            }
+            .add_to_world(&mut world);
+
+            crate::physics::BodyBuilder {
+                position: Vector2::new(0.0, screen_height() - 10.0),
+                typ: RigidBodyType::Fixed,
+                shape: Shape::Rectangle(screen_width(), 10.0),
+                restitution: 0.7,
                 ..Default::default()
             }
             .add_to_world(&mut world);

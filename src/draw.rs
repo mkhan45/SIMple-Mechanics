@@ -9,12 +9,23 @@ pub fn draw_sys(physics_res: Res<PhysicsRes>) {
     let sf = physics_res.scale_factor;
 
     for (_handle, collider) in colliders.iter() {
+        let pos = {
+            let v = collider.position().translation;
+            Vec2::new(v.x, v.y) / sf
+        };
+
         match collider.shape().as_typed_shape() {
             TypedShape::Ball(ball) => {
                 let r = ball.radius / sf;
-                let pos = collider.position().translation;
 
-                draw_circle(pos.x / sf, pos.y / sf, r, WHITE);
+                draw_circle(pos.x, pos.y, r, WHITE);
+            }
+            TypedShape::Cuboid(cuboid) => {
+                let extents = cuboid.half_extents;
+                let w = extents.x * 2.0 / sf;
+                let h = extents.y * 2.0 / sf;
+
+                draw_rectangle(pos.x - w / 2.0, pos.y - h / 2.0, w, h, WHITE);
             }
             _ => unimplemented!(),
         }
